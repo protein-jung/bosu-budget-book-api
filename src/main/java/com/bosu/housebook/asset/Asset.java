@@ -50,6 +50,10 @@ public class Asset extends BaseTimeEntity {
     @Column(precision = 20, scale = 8)
     private BigDecimal quantity;
 
+    /** STOCK/CRYPTO 전용(선택): 매수 평단가(원). */
+    @Column(name = "average_price", precision = 20, scale = 4)
+    private BigDecimal averagePrice;
+
     /** 그 외 자산 전용: 직접 입력한 평가금액(원). */
     @Column(name = "manual_value", precision = 16, scale = 2)
     private BigDecimal manualValue;
@@ -71,13 +75,15 @@ public class Asset extends BaseTimeEntity {
     private String ho;
 
     public Asset(Household household, AssetType type, String name, String custodian, String symbol,
-            BigDecimal quantity, BigDecimal manualValue, String memo, String address, String dong, String ho) {
+            BigDecimal quantity, BigDecimal averagePrice, BigDecimal manualValue, String memo, String address,
+            String dong, String ho) {
         this.household = household;
         this.type = type;
         this.name = name;
         this.custodian = custodian;
         this.symbol = symbol;
         this.quantity = quantity;
+        this.averagePrice = averagePrice;
         this.manualValue = manualValue;
         this.memo = memo;
         this.address = address;
@@ -86,12 +92,13 @@ public class Asset extends BaseTimeEntity {
     }
 
     public void update(AssetType type, String name, String custodian, String symbol, BigDecimal quantity,
-            BigDecimal manualValue, String memo, String address, String dong, String ho) {
+            BigDecimal averagePrice, BigDecimal manualValue, String memo, String address, String dong, String ho) {
         this.type = type;
         this.name = name;
         this.custodian = custodian;
         this.symbol = symbol;
         this.quantity = quantity;
+        this.averagePrice = averagePrice;
         this.manualValue = manualValue;
         this.memo = memo;
         this.address = address;

@@ -4,6 +4,7 @@ import com.bosu.housebook.asset.dto.AssetRefreshResponse;
 import com.bosu.housebook.asset.dto.AssetRequest;
 import com.bosu.housebook.asset.dto.AssetResponse;
 import com.bosu.housebook.asset.dto.AssetSummaryResponse;
+import com.bosu.housebook.asset.dto.StockSymbolCandidate;
 import com.bosu.housebook.auth.CurrentUserId;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -23,9 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AssetController {
 
     private final AssetService assetService;
+    private final StockSymbolSearchService stockSymbolSearchService;
 
-    public AssetController(AssetService assetService) {
+    public AssetController(AssetService assetService, StockSymbolSearchService stockSymbolSearchService) {
         this.assetService = assetService;
+        this.stockSymbolSearchService = stockSymbolSearchService;
     }
 
     @GetMapping
@@ -58,5 +62,10 @@ public class AssetController {
     @PostMapping("/refresh-prices")
     public AssetRefreshResponse refreshPrices(@CurrentUserId Long userId) {
         return assetService.refreshPrices(userId);
+    }
+
+    @GetMapping("/search-symbols")
+    public List<StockSymbolCandidate> searchSymbols(@RequestParam String query) {
+        return stockSymbolSearchService.search(query);
     }
 }

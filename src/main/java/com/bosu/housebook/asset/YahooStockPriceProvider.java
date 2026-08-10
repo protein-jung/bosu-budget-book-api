@@ -61,6 +61,31 @@ public class YahooStockPriceProvider implements AssetPriceProvider {
         return fetchPrice(USD_KRW_SYMBOL).map(QuotedPrice::price);
     }
 
+    /**
+     * Yahoo Finance의 종목 검색 API. 영문/티커/숫자 검색어는 잘 동작하지만 한글 검색어를 넣으면
+     * "Invalid Search Query" 400 에러를 반환한다(비공식 API의 알려진 한계) — 이 경우 국내
+     * 종목은 KrStockProvider의 정적 목록으로 대신 찾도록 상위(StockSymbolSearchService)에서
+     * 처리하고, 여기서는 실패 시 빈 리스트만 반환한다.
+     */
+    public List<StockQuote> searchSymbols(String query) {
+        try {
+            SearchResponse response = restClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/v1/finance/search")
+                            .queryParam("q", query)
+                            .queryParam("quotesCount", 8)
+                            .queryParam("newsCount", 0)
+                            .build())
+                    .retrieve()
+                    .body(SearchResponse.class);
+            if (response == null || response.quotes() == null) {
+                return List.of();
+            }
+            return response.quotes();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     private record ChartResponse(Chart chart) {
     }
 
@@ -71,5 +96,11 @@ public class YahooStockPriceProvider implements AssetPriceProvider {
     }
 
     private record Meta(String currency, Double regularMarketPrice) {
+    }
+
+    private record SearchResponse(List<StockQuote> quotes) {
+    }
+
+    public record StockQuote(String symbol, String shortname, String longname, String exchDisp, String quoteType) {
     }
 }

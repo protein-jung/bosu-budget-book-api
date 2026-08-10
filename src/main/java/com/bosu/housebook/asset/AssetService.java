@@ -49,8 +49,8 @@ public class AssetService {
         validate(request);
 
         Asset asset = new Asset(household, request.type(), request.name(), request.custodian(), request.symbol(),
-                request.quantity(), request.manualValue(), request.memo(), request.address(), request.dong(),
-                request.ho());
+                request.quantity(), request.averagePrice(), request.manualValue(), request.memo(), request.address(),
+                request.dong(), request.ho());
         assetRepository.save(asset);
         return AssetResponse.from(asset);
     }
@@ -60,7 +60,8 @@ public class AssetService {
         Asset asset = getOwnedAsset(userId, assetId);
         validate(request);
         asset.update(request.type(), request.name(), request.custodian(), request.symbol(), request.quantity(),
-                request.manualValue(), request.memo(), request.address(), request.dong(), request.ho());
+                request.averagePrice(), request.manualValue(), request.memo(), request.address(), request.dong(),
+                request.ho());
         return AssetResponse.from(asset);
     }
 

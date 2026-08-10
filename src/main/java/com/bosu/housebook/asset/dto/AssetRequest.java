@@ -16,6 +16,7 @@ public record AssetRequest(
         @Size(max = 100) String custodian,
         @Size(max = 20) String symbol,
         BigDecimal quantity,
+        BigDecimal averagePrice,
         BigDecimal manualValue,
         @Size(max = 500) String memo,
         @Size(max = 200) String address,
