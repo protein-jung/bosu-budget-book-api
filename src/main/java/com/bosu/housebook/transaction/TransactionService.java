@@ -46,7 +46,8 @@ public class TransactionService {
         LocalDate from = yearMonth.atDay(1);
         LocalDate to = yearMonth.atEndOfMonth();
         return transactionRepository
-                .findByHouseholdIdAndTransactionDateBetweenOrderByTransactionDateAscIdAsc(householdId, from, to)
+                .findByHouseholdIdAndTransactionDateBetweenAndIsBackfillFalseOrderByTransactionDateAscIdAsc(
+                        householdId, from, to)
                 .stream()
                 .map(TransactionResponse::from)
                 .toList();

@@ -1,5 +1,6 @@
 package com.bosu.housebook.household;
 
+import com.bosu.housebook.category.CategoryDefaultSeeder;
 import com.bosu.housebook.common.ApiException;
 import com.bosu.housebook.household.dto.HouseholdCreateRequest;
 import com.bosu.housebook.household.dto.HouseholdResponse;
@@ -23,12 +24,14 @@ public class HouseholdService {
     private final HouseholdRepository householdRepository;
     private final HouseholdMemberRepository householdMemberRepository;
     private final UserRepository userRepository;
+    private final CategoryDefaultSeeder categoryDefaultSeeder;
 
     public HouseholdService(HouseholdRepository householdRepository, HouseholdMemberRepository householdMemberRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository, CategoryDefaultSeeder categoryDefaultSeeder) {
         this.householdRepository = householdRepository;
         this.householdMemberRepository = householdMemberRepository;
         this.userRepository = userRepository;
+        this.categoryDefaultSeeder = categoryDefaultSeeder;
     }
 
     /** 다른 도메인 서비스가 현재 로그인한 유저의 household id를 조회할 때 사용. */
@@ -47,6 +50,7 @@ public class HouseholdService {
         Household household = new Household(request.name(), generateUniqueInviteCode());
         householdRepository.save(household);
         householdMemberRepository.save(new HouseholdMember(household, user, HouseholdRole.OWNER));
+        categoryDefaultSeeder.seed(household);
         return toResponse(household);
     }
 

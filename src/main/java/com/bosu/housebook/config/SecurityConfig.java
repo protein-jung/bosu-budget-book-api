@@ -54,8 +54,14 @@ public class SecurityConfig {
     }
 
     private CorsConfigurationSource corsConfigurationSource() {
+        // Tailscale은 100.64.0.0/10 대역의 사설 IP를 쓰므로, "100."으로 시작하는 오리진은
+        // 모두 우리 tailnet에 속한 기기(맥/배우자 폰)라고 보고 허용한다. 공인 인터넷에는
+        // 노출되지 않는 사설 VPN 대역이라 이 패턴을 열어도 외부에서 접근할 수는 없다.
+        java.util.List<String> allowedOriginPatterns = new java.util.ArrayList<>(corsProperties.allowedOrigins());
+        allowedOriginPatterns.add("http://100.*:*");
+
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(corsProperties.allowedOrigins());
+        configuration.setAllowedOriginPatterns(allowedOriginPatterns);
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("*"));
         configuration.setAllowCredentials(true);

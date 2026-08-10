@@ -10,5 +10,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByHouseholdIdAndTransactionDateBetweenOrderByTransactionDateAscIdAsc(
             Long householdId, LocalDate from, LocalDate to);
 
+    List<Transaction> findByHouseholdIdAndTransactionDateBetweenAndIsBackfillFalseOrderByTransactionDateAscIdAsc(
+            Long householdId, LocalDate from, LocalDate to);
+
+    List<Transaction> findByHouseholdIdAndCardIdAndTransactionDateBetween(
+            Long householdId, Long cardId, LocalDate from, LocalDate to);
+
     Optional<Transaction> findByIdAndHouseholdId(Long id, Long householdId);
+
+    Optional<Transaction> findFirstByHouseholdIdOrderByTransactionDateAsc(Long householdId);
 }

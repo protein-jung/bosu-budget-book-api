@@ -30,7 +30,8 @@ public class AuthService {
         if (userRepository.existsByEmail(request.email())) {
             throw ApiException.conflict("이미 가입된 이메일입니다.");
         }
-        User user = new User(request.email(), passwordEncoder.encode(request.password()), request.name());
+        User user = new User(request.email(), passwordEncoder.encode(request.password()), request.name(),
+                request.birthDate());
         userRepository.save(user);
         return toTokenResponse(user);
     }
@@ -46,6 +47,6 @@ public class AuthService {
 
     private TokenResponse toTokenResponse(User user) {
         String token = jwtTokenProvider.generateToken(user.getId());
-        return new TokenResponse(token, user.getId(), user.getEmail(), user.getName());
+        return new TokenResponse(token, user.getId(), user.getEmail(), user.getName(), user.getBirthDate());
     }
 }

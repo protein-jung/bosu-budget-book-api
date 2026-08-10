@@ -1,0 +1,4 @@
+ALTER TABLE assets
+    ADD COLUMN address VARCHAR(200),
+    ADD COLUMN dong    VARCHAR(20),
+    ADD COLUMN ho      VARCHAR(20);

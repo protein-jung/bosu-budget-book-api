@@ -1,0 +1,52 @@
+package com.bosu.housebook.category;
+
+import com.bosu.housebook.common.BaseTimeEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.math.BigDecimal;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+/** 특정 카테고리의 특정 달 목표 금액. 없으면 {@link Category#getTargetAmount()} 기본값을 쓴다. */
+@Entity
+@Table(name = "category_monthly_targets")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class CategoryMonthlyTarget extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
+
+    @Column(nullable = false)
+    private int year;
+
+    @Column(nullable = false)
+    private int month;
+
+    @Column(nullable = false)
+    private BigDecimal amount;
+
+    public CategoryMonthlyTarget(Category category, int year, int month, BigDecimal amount) {
+        this.category = category;
+        this.year = year;
+        this.month = month;
+        this.amount = amount;
+    }
+
+    public void updateAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+}
