@@ -21,5 +21,8 @@ public record AssetRequest(
         @Size(max = 500) String memo,
         @Size(max = 200) String address,
         @Size(max = 20) String dong,
-        @Size(max = 20) String ho) {
+        @Size(max = 20) String ho,
+        @Size(max = 10) String lawdCd,
+        @Size(max = 100) String complexName,
+        @Size(max = 50) String regionDongName) {
 }

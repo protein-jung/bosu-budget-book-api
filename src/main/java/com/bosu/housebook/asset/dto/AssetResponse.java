@@ -20,7 +20,10 @@ public record AssetResponse(
         String memo,
         String address,
         String dong,
-        String ho) {
+        String ho,
+        String lawdCd,
+        String complexName,
+        String regionDongName) {
 
     public static AssetResponse from(Asset asset) {
         return new AssetResponse(
@@ -38,6 +41,9 @@ public record AssetResponse(
                 asset.getMemo(),
                 asset.getAddress(),
                 asset.getDong(),
-                asset.getHo());
+                asset.getHo(),
+                asset.getLawdCd(),
+                asset.getComplexName(),
+                asset.getRegionDongName());
     }
 }

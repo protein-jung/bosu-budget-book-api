@@ -74,9 +74,19 @@ public class Asset extends BaseTimeEntity {
 
     private String ho;
 
+    /** 부동산 전용(선택): 국토부 실거래가 자동 조회에 쓰는 법정동 코드/단지명/법정동명. */
+    @Column(name = "lawd_cd")
+    private String lawdCd;
+
+    @Column(name = "complex_name")
+    private String complexName;
+
+    @Column(name = "region_dong_name")
+    private String regionDongName;
+
     public Asset(Household household, AssetType type, String name, String custodian, String symbol,
             BigDecimal quantity, BigDecimal averagePrice, BigDecimal manualValue, String memo, String address,
-            String dong, String ho) {
+            String dong, String ho, String lawdCd, String complexName, String regionDongName) {
         this.household = household;
         this.type = type;
         this.name = name;
@@ -89,10 +99,14 @@ public class Asset extends BaseTimeEntity {
         this.address = address;
         this.dong = dong;
         this.ho = ho;
+        this.lawdCd = lawdCd;
+        this.complexName = complexName;
+        this.regionDongName = regionDongName;
     }
 
     public void update(AssetType type, String name, String custodian, String symbol, BigDecimal quantity,
-            BigDecimal averagePrice, BigDecimal manualValue, String memo, String address, String dong, String ho) {
+            BigDecimal averagePrice, BigDecimal manualValue, String memo, String address, String dong, String ho,
+            String lawdCd, String complexName, String regionDongName) {
         this.type = type;
         this.name = name;
         this.custodian = custodian;
@@ -104,6 +118,9 @@ public class Asset extends BaseTimeEntity {
         this.address = address;
         this.dong = dong;
         this.ho = ho;
+        this.lawdCd = lawdCd;
+        this.complexName = complexName;
+        this.regionDongName = regionDongName;
     }
 
     public void updatePrice(BigDecimal price, LocalDateTime updatedAt) {
@@ -111,8 +128,12 @@ public class Asset extends BaseTimeEntity {
         this.priceUpdatedAt = updatedAt;
     }
 
-    /** STOCK/CRYPTO는 단가*수량, 그 외는 직접 입력한 평가금액. 시세를 아직 못 받아왔으면 null. */
+    /** REAL_ESTATE는 국토부 실거래가(있으면)를 우선하고 없으면 직접 입력값, STOCK/CRYPTO는 단가*수량,
+     * 그 외는 직접 입력한 평가금액. 시세를 아직 못 받아왔으면 null. */
     public BigDecimal getCurrentValue() {
+        if (type == AssetType.REAL_ESTATE) {
+            return currentPrice != null ? currentPrice : manualValue;
+        }
         if (type.isLivePriced()) {
             return currentPrice != null && quantity != null ? currentPrice.multiply(quantity) : null;
         }

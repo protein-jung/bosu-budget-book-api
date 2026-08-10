@@ -50,7 +50,7 @@ public class AssetService {
 
         Asset asset = new Asset(household, request.type(), request.name(), request.custodian(), request.symbol(),
                 request.quantity(), request.averagePrice(), request.manualValue(), request.memo(), request.address(),
-                request.dong(), request.ho());
+                request.dong(), request.ho(), request.lawdCd(), request.complexName(), request.regionDongName());
         assetRepository.save(asset);
         return AssetResponse.from(asset);
     }
@@ -61,7 +61,7 @@ public class AssetService {
         validate(request);
         asset.update(request.type(), request.name(), request.custodian(), request.symbol(), request.quantity(),
                 request.averagePrice(), request.manualValue(), request.memo(), request.address(), request.dong(),
-                request.ho());
+                request.ho(), request.lawdCd(), request.complexName(), request.regionDongName());
         return AssetResponse.from(asset);
     }
 
