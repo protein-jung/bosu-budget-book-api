@@ -2,6 +2,7 @@ package com.bosu.housebook.asset;
 
 import com.bosu.housebook.common.BaseTimeEntity;
 import com.bosu.housebook.household.Household;
+import com.bosu.housebook.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -84,9 +85,20 @@ public class Asset extends BaseTimeEntity {
     @Column(name = "region_dong_name")
     private String regionDongName;
 
+    /** STOCK 전용(선택): 일반 계좌 보유인지 연금(IRP/연금저축) 계좌 보유인지. 기본값 GENERAL. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_category", nullable = false)
+    private AccountCategory accountCategory = AccountCategory.GENERAL;
+
+    /** 부동산/차량 외 자산 전용(선택): 소유주(가계부 구성원). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_user_id")
+    private User owner;
+
     public Asset(Household household, AssetType type, String name, String custodian, String symbol,
             BigDecimal quantity, BigDecimal averagePrice, BigDecimal manualValue, String memo, String address,
-            String dong, String ho, String lawdCd, String complexName, String regionDongName) {
+            String dong, String ho, String lawdCd, String complexName, String regionDongName,
+            AccountCategory accountCategory, User owner) {
         this.household = household;
         this.type = type;
         this.name = name;
@@ -102,11 +114,13 @@ public class Asset extends BaseTimeEntity {
         this.lawdCd = lawdCd;
         this.complexName = complexName;
         this.regionDongName = regionDongName;
+        this.accountCategory = accountCategory != null ? accountCategory : AccountCategory.GENERAL;
+        this.owner = owner;
     }
 
     public void update(AssetType type, String name, String custodian, String symbol, BigDecimal quantity,
             BigDecimal averagePrice, BigDecimal manualValue, String memo, String address, String dong, String ho,
-            String lawdCd, String complexName, String regionDongName) {
+            String lawdCd, String complexName, String regionDongName, AccountCategory accountCategory) {
         this.type = type;
         this.name = name;
         this.custodian = custodian;
@@ -121,6 +135,7 @@ public class Asset extends BaseTimeEntity {
         this.lawdCd = lawdCd;
         this.complexName = complexName;
         this.regionDongName = regionDongName;
+        this.accountCategory = accountCategory != null ? accountCategory : AccountCategory.GENERAL;
     }
 
     public void updatePrice(BigDecimal price, LocalDateTime updatedAt) {

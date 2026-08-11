@@ -1,0 +1,2 @@
+ALTER TABLE assets
+    ADD COLUMN owner_user_id BIGINT REFERENCES users(id) ON DELETE SET NULL;

@@ -8,6 +8,8 @@ import com.bosu.housebook.common.ApiException;
 import com.bosu.housebook.household.Household;
 import com.bosu.housebook.household.HouseholdRepository;
 import com.bosu.housebook.household.HouseholdService;
+import com.bosu.housebook.user.User;
+import com.bosu.housebook.user.UserRepository;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -26,13 +28,15 @@ public class AssetService {
     private final HouseholdRepository householdRepository;
     private final HouseholdService householdService;
     private final AssetPriceService assetPriceService;
+    private final UserRepository userRepository;
 
     public AssetService(AssetRepository assetRepository, HouseholdRepository householdRepository,
-            HouseholdService householdService, AssetPriceService assetPriceService) {
+            HouseholdService householdService, AssetPriceService assetPriceService, UserRepository userRepository) {
         this.assetRepository = assetRepository;
         this.householdRepository = householdRepository;
         this.householdService = householdService;
         this.assetPriceService = assetPriceService;
+        this.userRepository = userRepository;
     }
 
     public List<AssetResponse> getAll(Long userId) {
@@ -47,10 +51,13 @@ public class AssetService {
         Long householdId = householdService.getHouseholdIdForUser(userId);
         Household household = householdRepository.getReferenceById(householdId);
         validate(request);
+        // 소유주는 따로 고르지 않고 등록한 사람으로 자동 지정한다.
+        User owner = userRepository.getReferenceById(userId);
 
         Asset asset = new Asset(household, request.type(), request.name(), request.custodian(), request.symbol(),
                 request.quantity(), request.averagePrice(), request.manualValue(), request.memo(), request.address(),
-                request.dong(), request.ho(), request.lawdCd(), request.complexName(), request.regionDongName());
+                request.dong(), request.ho(), request.lawdCd(), request.complexName(), request.regionDongName(),
+                request.accountCategory(), owner);
         assetRepository.save(asset);
         return AssetResponse.from(asset);
     }
@@ -61,7 +68,8 @@ public class AssetService {
         validate(request);
         asset.update(request.type(), request.name(), request.custodian(), request.symbol(), request.quantity(),
                 request.averagePrice(), request.manualValue(), request.memo(), request.address(), request.dong(),
-                request.ho(), request.lawdCd(), request.complexName(), request.regionDongName());
+                request.ho(), request.lawdCd(), request.complexName(), request.regionDongName(),
+                request.accountCategory());
         return AssetResponse.from(asset);
     }
 

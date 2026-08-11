@@ -1,5 +1,6 @@
 package com.bosu.housebook.asset.dto;
 
+import com.bosu.housebook.asset.AccountCategory;
 import com.bosu.housebook.asset.AssetType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,5 +25,6 @@ public record AssetRequest(
         @Size(max = 20) String ho,
         @Size(max = 10) String lawdCd,
         @Size(max = 100) String complexName,
-        @Size(max = 50) String regionDongName) {
+        @Size(max = 50) String regionDongName,
+        AccountCategory accountCategory) {
 }

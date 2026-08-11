@@ -1,0 +1,2 @@
+ALTER TABLE assets
+    ADD COLUMN account_category VARCHAR(20) NOT NULL DEFAULT 'GENERAL';
