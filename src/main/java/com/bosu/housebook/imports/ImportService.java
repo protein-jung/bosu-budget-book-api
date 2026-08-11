@@ -10,6 +10,7 @@ import com.bosu.housebook.common.TransactionType;
 import com.bosu.housebook.household.Household;
 import com.bosu.housebook.household.HouseholdRepository;
 import com.bosu.housebook.household.HouseholdService;
+import com.bosu.housebook.imports.coupang.CoupangProductCategoryClassifier;
 import com.bosu.housebook.imports.dto.ImportResultResponse;
 import com.bosu.housebook.transaction.Transaction;
 import com.bosu.housebook.transaction.TransactionRepository;
@@ -26,6 +27,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,13 +50,15 @@ public class ImportService {
     private final ImportBatchRepository importBatchRepository;
     private final UserRepository userRepository;
     private final MerchantCategoryClassifier categoryClassifier;
+    private final CoupangProductCategoryClassifier coupangCategoryClassifier;
     private final OfficeFileDecryptor officeFileDecryptor;
 
     public ImportService(List<StatementParser> parsers, HouseholdService householdService,
             HouseholdRepository householdRepository, CardRepository cardRepository,
             CategoryRepository categoryRepository, TransactionRepository transactionRepository,
             ImportBatchRepository importBatchRepository, UserRepository userRepository,
-            MerchantCategoryClassifier categoryClassifier, OfficeFileDecryptor officeFileDecryptor) {
+            MerchantCategoryClassifier categoryClassifier, CoupangProductCategoryClassifier coupangCategoryClassifier,
+            OfficeFileDecryptor officeFileDecryptor) {
         this.parsers = parsers.stream().collect(java.util.stream.Collectors.toMap(StatementParser::provider,
                 Function.identity()));
         this.householdService = householdService;
@@ -65,6 +69,7 @@ public class ImportService {
         this.importBatchRepository = importBatchRepository;
         this.userRepository = userRepository;
         this.categoryClassifier = categoryClassifier;
+        this.coupangCategoryClassifier = coupangCategoryClassifier;
         this.officeFileDecryptor = officeFileDecryptor;
     }
 
@@ -96,6 +101,10 @@ public class ImportService {
         Card card = resolveCard(household, cardId, cardName, provider);
         Map<String, Integer> existingCounts = countExistingByKey(householdId, card.getId(), parsed);
 
+        Function<String, Optional<MerchantCategoryClassifier.CategorySuggestion>> classify = provider == ImportProvider.COUPANG
+                ? coupangCategoryClassifier::classify
+                : categoryClassifier::classify;
+
         Map<String, Category> categoryCache = new LinkedHashMap<>();
         Map<Long, BreakdownAccumulator> breakdown = new LinkedHashMap<>();
         BigDecimal total = BigDecimal.ZERO;
@@ -109,7 +118,7 @@ public class ImportService {
                 continue;
             }
 
-            Category category = resolveCategory(household, row.merchantName(), categoryCache);
+            Category category = resolveCategory(household, row.merchantName(), classify, categoryCache);
             Transaction transaction = new Transaction(household, TransactionType.EXPENSE, row.amount(),
                     row.transactionDate(), category, card, uploader, row.merchantName());
             transactionRepository.save(transaction);
@@ -169,8 +178,10 @@ public class ImportService {
         }
     }
 
-    private Category resolveCategory(Household household, String merchantName, Map<String, Category> cache) {
-        var suggestion = categoryClassifier.classify(merchantName);
+    private Category resolveCategory(Household household, String merchantName,
+            Function<String, Optional<MerchantCategoryClassifier.CategorySuggestion>> classify,
+            Map<String, Category> cache) {
+        var suggestion = classify.apply(merchantName);
         String name = suggestion.map(MerchantCategoryClassifier.CategorySuggestion::categoryName)
                 .orElse(UNCATEGORIZED_NAME);
         String color = suggestion.map(MerchantCategoryClassifier.CategorySuggestion::color)
@@ -200,6 +211,7 @@ public class ImportService {
         return switch (provider) {
             case SAMSUNG_CARD -> "삼성카드";
             case GYEONGGI_LOCAL_CURRENCY -> "경기지역화폐";
+            case COUPANG -> "쿠팡";
         };
     }
 
