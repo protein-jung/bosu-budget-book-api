@@ -8,14 +8,16 @@
 
 ## 개요
 
-| 항목 | 값 |
-|------|-----|
-| 서버 포트 | `8080` |
-| DB | PostgreSQL `jdbc:postgresql://localhost:5432/housebook` |
-| 스키마 관리 | Flyway (`ddl-auto: validate`) |
-| 인증 방식 | JWT Bearer (`Authorization: Bearer <token>`) |
-| 공개 API | `/api/auth/**`만 |
-| 데이터 격리 | household(가계부) 단위 |
+
+| 항목     | 값                                                       |
+| ------ | ------------------------------------------------------- |
+| 서버 포트  | `8080`                                                  |
+| DB     | PostgreSQL `jdbc:postgresql://localhost:5432/housebook` |
+| 스키마 관리 | Flyway (`ddl-auto: validate`)                           |
+| 인증 방식  | JWT Bearer (`Authorization: Bearer <token>`)            |
+| 공개 API | `/api/auth/**`만                                         |
+| 데이터 격리 | household(가계부) 단위                                       |
+
 
 ### 요청 흐름
 
@@ -46,47 +48,60 @@ users ──< household_members >── households
 ### 테이블 상세
 
 #### users
-| 컬럼 | 타입 | 비고 |
-|------|------|------|
-| id | BIGSERIAL PK | |
-| email | VARCHAR(255) UNIQUE | |
-| password | VARCHAR(255) | BCrypt |
-| name | VARCHAR(100) | |
-| birth_date | DATE | nullable |
-| created_at / updated_at | TIMESTAMP | |
+
+
+| 컬럼                      | 타입                  | 비고       |
+| ----------------------- | ------------------- | -------- |
+| id                      | BIGSERIAL PK        |          |
+| email                   | VARCHAR(255) UNIQUE |          |
+| password                | VARCHAR(255)        | BCrypt   |
+| name                    | VARCHAR(100)        |          |
+| birth_date              | DATE                | nullable |
+| created_at / updated_at | TIMESTAMP           |          |
+
 
 #### households
-| 컬럼 | 타입 | 비고 |
-|------|------|------|
-| id | BIGSERIAL PK | |
-| name | VARCHAR | |
-| invite_code | VARCHAR UNIQUE | 초대 코드 |
-| created_at / updated_at | TIMESTAMP | |
+
+
+| 컬럼                      | 타입             | 비고    |
+| ----------------------- | -------------- | ----- |
+| id                      | BIGSERIAL PK   |       |
+| name                    | VARCHAR        |       |
+| invite_code             | VARCHAR UNIQUE | 초대 코드 |
+| created_at / updated_at | TIMESTAMP      |       |
+
 
 #### household_members
-| 컬럼 | 타입 | 비고 |
-|------|------|------|
-| id | BIGSERIAL PK | |
-| household_id | FK → households | CASCADE |
-| user_id | FK → users | CASCADE, UNIQUE(household_id, user_id) |
-| role | ENUM | `OWNER` / `MEMBER` |
-| joined_at | TIMESTAMP | |
+
+
+| 컬럼           | 타입              | 비고                                     |
+| ------------ | --------------- | -------------------------------------- |
+| id           | BIGSERIAL PK    |                                        |
+| household_id | FK → households | CASCADE                                |
+| user_id      | FK → users      | CASCADE, UNIQUE(household_id, user_id) |
+| role         | ENUM            | `OWNER` / `MEMBER`                     |
+| joined_at    | TIMESTAMP       |                                        |
+
 
 #### categories
-| 컬럼 | 타입 | 비고 |
-|------|------|------|
-| id | BIGSERIAL PK | |
-| household_id | FK → households | CASCADE |
-| parent_id | FK → categories | SET NULL, 대분류면 null |
-| name | VARCHAR | |
-| type | ENUM | `INCOME` / `EXPENSE` |
-| color | VARCHAR | |
-| sort_order | INT | 정렬 순서 |
-| created_at / updated_at | TIMESTAMP | |
+
+
+| 컬럼                      | 타입              | 비고                   |
+| ----------------------- | --------------- | -------------------- |
+| id                      | BIGSERIAL PK    |                      |
+| household_id            | FK → households | CASCADE              |
+| parent_id               | FK → categories | SET NULL, 대분류면 null  |
+| name                    | VARCHAR         |                      |
+| type                    | ENUM            | `INCOME` / `EXPENSE` |
+| color                   | VARCHAR         |                      |
+| sort_order              | INT             | 정렬 순서                |
+| created_at / updated_at | TIMESTAMP       |                      |
+
 
 가계부 생성 시(또는 카테고리가 비어 있을 때) 엑셀 구조 기본 트리를 시드한다.
 
 **지출 대분류 → 소분류**
+
 - 생활비 → 외식비, 식대/생필품, 통신비/인터넷, 멤버십 비용
 - 주거비 → 집 원금, 집 이자, 관리비
 - 자동차 → 충전비/통비, 보험, 세금, 주차비
@@ -101,71 +116,82 @@ users ──< household_members >── households
 **수입**: 급여, 기타수입
 
 #### cards
-| 컬럼 | 타입 | 비고 |
-|------|------|------|
-| id | BIGSERIAL PK | |
-| household_id | FK → households | CASCADE |
-| name | VARCHAR | |
-| type | ENUM | `CREDIT` / `DEBIT` / `CASH` |
-| owner_user_id | FK → users | SET NULL, optional |
-| created_at / updated_at | TIMESTAMP | |
+
+
+| 컬럼                      | 타입              | 비고                          |
+| ----------------------- | --------------- | --------------------------- |
+| id                      | BIGSERIAL PK    |                             |
+| household_id            | FK → households | CASCADE                     |
+| name                    | VARCHAR         |                             |
+| type                    | ENUM            | `CREDIT` / `DEBIT` / `CASH` |
+| owner_user_id           | FK → users      | SET NULL, optional          |
+| created_at / updated_at | TIMESTAMP       |                             |
+
 
 #### transactions
-| 컬럼 | 타입 | 비고 |
-|------|------|------|
-| id | BIGSERIAL PK | |
-| household_id | FK → households | CASCADE |
-| type | ENUM | `INCOME` / `EXPENSE` |
-| amount | NUMERIC(14,2) | |
-| transaction_date | DATE | |
-| category_id | FK → categories | required |
-| card_id | FK → cards | SET NULL, optional |
-| user_id | FK → users | 작성자 |
-| memo | VARCHAR(500) | |
-| created_at / updated_at | TIMESTAMP | |
-| INDEX | (household_id, transaction_date) | |
+
+
+| 컬럼                      | 타입                               | 비고                   |
+| ----------------------- | -------------------------------- | -------------------- |
+| id                      | BIGSERIAL PK                     |                      |
+| household_id            | FK → households                  | CASCADE              |
+| type                    | ENUM                             | `INCOME` / `EXPENSE` |
+| amount                  | NUMERIC(14,2)                    |                      |
+| transaction_date        | DATE                             |                      |
+| category_id             | FK → categories                  | required             |
+| card_id                 | FK → cards                       | SET NULL, optional   |
+| user_id                 | FK → users                       | 작성자                  |
+| memo                    | VARCHAR(500)                     |                      |
+| created_at / updated_at | TIMESTAMP                        |                      |
+| INDEX                   | (household_id, transaction_date) |                      |
+
 
 #### import_batches
-| 컬럼 | 타입 | 비고 |
-|------|------|------|
-| id | BIGSERIAL PK | |
-| household_id | FK → households | CASCADE |
-| provider | ENUM | `SAMSUNG_CARD` / `GYEONGGI_LOCAL_CURRENCY` |
-| card_id | FK → cards | SET NULL |
-| file_checksum | VARCHAR(64) | UNIQUE(household_id, checksum) |
-| imported_count | INT | |
-| skipped_count | INT | |
-| created_at | TIMESTAMP | |
+
+
+| 컬럼             | 타입              | 비고                                         |
+| -------------- | --------------- | ------------------------------------------ |
+| id             | BIGSERIAL PK    |                                            |
+| household_id   | FK → households | CASCADE                                    |
+| provider       | ENUM            | `SAMSUNG_CARD` / `GYEONGGI_LOCAL_CURRENCY` |
+| card_id        | FK → cards      | SET NULL                                   |
+| file_checksum  | VARCHAR(64)     | UNIQUE(household_id, checksum)             |
+| imported_count | INT             |                                            |
+| skipped_count  | INT             |                                            |
+| created_at     | TIMESTAMP       |                                            |
+
 
 ---
 
 ## 엔드포인트 한눈에 보기
 
-| Method | Path | Auth | 설명 |
-|--------|------|------|------|
-| POST | `/api/auth/signup` | 공개 | 회원가입 |
-| POST | `/api/auth/login` | 공개 | 로그인 |
-| GET | `/api/users/me` | JWT | 내 정보 조회 |
-| PATCH | `/api/users/me` | JWT | 내 정보 수정 |
-| POST | `/api/households` | JWT | 가계부 생성 |
-| GET | `/api/households/me` | JWT | 내 가계부 조회 |
-| GET | `/api/households/invite-code` | JWT | 초대 코드 조회 |
-| POST | `/api/households/join` | JWT | 가계부 참여 |
-| GET | `/api/categories` | JWT | 카테고리 목록 |
-| POST | `/api/categories` | JWT | 카테고리 생성 |
-| PUT | `/api/categories/{categoryId}` | JWT | 카테고리 수정 |
-| DELETE | `/api/categories/{categoryId}` | JWT | 카테고리 삭제 |
-| GET | `/api/cards` | JWT | 카드 목록 |
-| POST | `/api/cards` | JWT | 카드 생성 |
-| PUT | `/api/cards/{cardId}` | JWT | 카드 수정 |
-| DELETE | `/api/cards/{cardId}` | JWT | 카드 삭제 |
-| GET | `/api/transactions` | JWT | 월별 거래 조회 |
-| POST | `/api/transactions` | JWT | 거래 생성 |
-| PUT | `/api/transactions/{transactionId}` | JWT | 거래 수정 |
-| DELETE | `/api/transactions/{transactionId}` | JWT | 거래 삭제 |
-| GET | `/api/statistics/monthly` | JWT | 월별 통계 |
-| GET | `/api/statistics/range` | JWT | 기간(월별 추이) 통계 |
-| POST | `/api/imports` | JWT | 명세서 임포트 |
+
+| Method | Path                                | Auth | 설명           |
+| ------ | ----------------------------------- | ---- | ------------ |
+| POST   | `/api/auth/signup`                  | 공개   | 회원가입         |
+| POST   | `/api/auth/login`                   | 공개   | 로그인          |
+| GET    | `/api/users/me`                     | JWT  | 내 정보 조회      |
+| PATCH  | `/api/users/me`                     | JWT  | 내 정보 수정      |
+| POST   | `/api/households`                   | JWT  | 가계부 생성       |
+| GET    | `/api/households/me`                | JWT  | 내 가계부 조회     |
+| GET    | `/api/households/invite-code`       | JWT  | 초대 코드 조회     |
+| POST   | `/api/households/join`              | JWT  | 가계부 참여       |
+| GET    | `/api/categories`                   | JWT  | 카테고리 목록      |
+| POST   | `/api/categories`                   | JWT  | 카테고리 생성      |
+| PUT    | `/api/categories/{categoryId}`      | JWT  | 카테고리 수정      |
+| DELETE | `/api/categories/{categoryId}`      | JWT  | 카테고리 삭제      |
+| GET    | `/api/cards`                        | JWT  | 카드 목록        |
+| POST   | `/api/cards`                        | JWT  | 카드 생성        |
+| PUT    | `/api/cards/{cardId}`               | JWT  | 카드 수정        |
+| DELETE | `/api/cards/{cardId}`               | JWT  | 카드 삭제        |
+| GET    | `/api/transactions`                 | JWT  | 월별 거래 조회     |
+| POST   | `/api/transactions`                 | JWT  | 거래 생성        |
+| PUT    | `/api/transactions/{transactionId}` | JWT  | 거래 수정        |
+| DELETE | `/api/transactions/{transactionId}` | JWT  | 거래 삭제        |
+| GET    | `/api/statistics/monthly`           | JWT  | 월별 통계        |
+| GET    | `/api/statistics/range`             | JWT  | 기간(월별 추이) 통계 |
+| POST   | `/api/imports`                      | JWT  | 명세서 임포트      |
+
 
 ---
 
@@ -186,12 +212,14 @@ users ──< household_members >── households
 }
 ```
 
-| 필드 | 타입 | 제약 |
-|------|------|------|
-| email | string | 필수 |
-| password | string | 필수, 8~100자 |
-| name | string | 필수 |
-| birthDate | date | `@Past` |
+
+| 필드        | 타입     | 제약         |
+| --------- | ------ | ---------- |
+| email     | string | 필수         |
+| password  | string | 필수, 8~100자 |
+| name      | string | 필수         |
+| birthDate | date   | `@Past`    |
+
 
 **Response** `201`
 
@@ -206,6 +234,7 @@ users ──< household_members >── households
 ```
 
 **DB**
+
 - `users` INSERT
 - 이메일 중복 시 `409`
 
@@ -227,6 +256,7 @@ users ──< household_members >── households
 **Response** `200` — signup과 동일한 `TokenResponse`
 
 **DB**
+
 - `users` SELECT by email
 - BCrypt 비밀번호 검증
 - 실패 시 `401`
@@ -304,6 +334,7 @@ users ──< household_members >── households
 ```
 
 **DB**
+
 1. `households` INSERT
 2. `household_members` INSERT (role = OWNER)
 3. 이미 소속 시 `409`
@@ -315,6 +346,7 @@ users ──< household_members >── households
 내 가계부 + 멤버 목록 조회
 
 **DB**
+
 1. `household_members`에서 userId로 소속 조회
 2. `households` 조회
 3. 멤버 목록 + `users` 조인
@@ -348,6 +380,7 @@ users ──< household_members >── households
 ```
 
 **DB**
+
 1. `households`를 invite_code로 조회
 2. `household_members` INSERT (role = MEMBER)
 3. 이미 소속 `409` / 코드 없음 `404`
@@ -403,10 +436,12 @@ users ──< household_members >── households
 }
 ```
 
-| 필드 | 값 |
-|------|-----|
-| type | `INCOME` / `EXPENSE` |
+
+| 필드       | 값                                         |
+| -------- | ----------------------------------------- |
+| type     | `INCOME` / `EXPENSE`                      |
 | parentId | optional. 대분류면 null. 상위는 같은 type의 대분류만 가능 |
+
 
 **Response** `201`  
 **DB**: `categories` INSERT
@@ -466,10 +501,12 @@ users ──< household_members >── households
 }
 ```
 
-| 필드 | 값 |
-|------|-----|
-| type | `CREDIT` / `DEBIT` / `CASH` |
+
+| 필드          | 값                                  |
+| ----------- | ---------------------------------- |
+| type        | `CREDIT` / `DEBIT` / `CASH`        |
 | ownerUserId | optional. 있으면 같은 household 멤버인지 검증 |
+
 
 **Response** `201`  
 **DB**: `cards` INSERT
@@ -498,10 +535,12 @@ household + owner 검증 후 UPDATE
 
 **Query Params**
 
-| 파라미터 | 타입 | 필수 |
-|----------|------|------|
-| year | int | O |
-| month | int | O |
+
+| 파라미터  | 타입  | 필수  |
+| ----- | --- | --- |
+| year  | int | O   |
+| month | int | O   |
+
 
 **Response**
 
@@ -543,12 +582,14 @@ household + owner 검증 후 UPDATE
 }
 ```
 
-| 필드 | 제약 |
-|------|------|
-| amount | ≥ 0.01 |
-| categoryId | 필수, 같은 household |
-| cardId | optional, 같은 household |
-| memo | optional |
+
+| 필드         | 제약                     |
+| ---------- | ---------------------- |
+| amount     | ≥ 0.01                 |
+| categoryId | 필수, 같은 household       |
+| cardId     | optional, 같은 household |
+| memo       | optional               |
+
 
 **Response** `201`  
 **DB**: category/card 소속 검증 → `transactions` INSERT (user_id = 로그인 유저)
@@ -623,13 +664,16 @@ household 소유 거래 UPDATE (작성자 변경 없음)
 }
 ```
 
-| 필드 | 설명 |
-|------|------|
-| netAmount | totalIncome − totalExpense |
-| byCategory | 소분류(리프) 단위 집계 + parent 정보 |
+
+| 필드               | 설명                           |
+| ---------------- | ---------------------------- |
+| netAmount        | totalIncome − totalExpense   |
+| byCategory       | 소분류(리프) 단위 집계 + parent 정보    |
 | byParentCategory | 대분류 단위 합산 (부모 없으면 자기 자신이 그룹) |
 
+
 **DB**
+
 1. `household_members`로 household 확인
 2. 월간 `transactions` 로드 (+ category.parent, card, user)
 3. 메모리에서 집계
@@ -681,12 +725,14 @@ household 소유 거래 UPDATE (작성자 변경 없음)
 
 **Form Params**
 
-| 파라미터 | 타입 | 필수 | 설명 |
-|----------|------|------|------|
-| provider | string | O | `SAMSUNG_CARD` / `GYEONGGI_LOCAL_CURRENCY` |
-| cardId | long | X | 기존 카드 ID |
-| cardName | string | X | 카드 이름 (없으면 생성) |
-| file | MultipartFile | O | 명세서 파일 |
+
+| 파라미터     | 타입            | 필수  | 설명                                         |
+| -------- | ------------- | --- | ------------------------------------------ |
+| provider | string        | O   | `SAMSUNG_CARD` / `GYEONGGI_LOCAL_CURRENCY` |
+| cardId   | long          | X   | 기존 카드 ID                                   |
+| cardName | string        | X   | 카드 이름 (없으면 생성)                             |
+| file     | MultipartFile | O   | 명세서 파일                                     |
+
 
 **Response**
 
@@ -718,16 +764,18 @@ household 소유 거래 UPDATE (작성자 변경 없음)
 
 ## Controller → Service → DB 매핑
 
-| Controller | Service | 테이블 |
-|------------|---------|--------|
-| AuthController | AuthService | `users` |
-| UserController | UserService | `users` |
-| HouseholdController | HouseholdService | `households`, `household_members`, `users` |
-| CategoryController | CategoryService | `categories`, `households`, `household_members` |
-| CardController | CardService | `cards`, `households`, `household_members`, `users` |
-| TransactionController | TransactionService | `transactions` + FK 테이블 |
-| StatisticsController | StatisticsService | `transactions`, `household_members` |
-| ImportController | ImportService | `import_batches`, `transactions`, `categories`, `cards` 등 |
+
+| Controller            | Service            | 테이블                                                       |
+| --------------------- | ------------------ | --------------------------------------------------------- |
+| AuthController        | AuthService        | `users`                                                   |
+| UserController        | UserService        | `users`                                                   |
+| HouseholdController   | HouseholdService   | `households`, `household_members`, `users`                |
+| CategoryController    | CategoryService    | `categories`, `households`, `household_members`           |
+| CardController        | CardService        | `cards`, `households`, `household_members`, `users`       |
+| TransactionController | TransactionService | `transactions` + FK 테이블                                   |
+| StatisticsController  | StatisticsService  | `transactions`, `household_members`                       |
+| ImportController      | ImportService      | `import_batches`, `transactions`, `categories`, `cards` 등 |
+
 
 공통: `HouseholdService.getHouseholdIdForUser`가 카테고리/카드/거래/통계/임포트의 게이트웨이
 
@@ -745,11 +793,13 @@ household 소유 거래 UPDATE (작성자 변경 없음)
  → @CurrentUserId Long userId 로 Controller에 주입
 ```
 
-| 항목 | 값 |
-|------|-----|
-| JWT subject | userId |
-| 만료 | 7일 (604800000ms) |
-| ROLE 기반 권한 | 없음 (household 소속으로만 격리) |
+
+| 항목          | 값                       |
+| ----------- | ----------------------- |
+| JWT subject | userId                  |
+| 만료          | 7일 (604800000ms)        |
+| ROLE 기반 권한  | 없음 (household 소속으로만 격리) |
+
 
 ---
 
@@ -763,25 +813,30 @@ household 소유 거래 UPDATE (작성자 변경 없음)
 }
 ```
 
-| HTTP | 상황 |
-|------|------|
-| 400 | validation 실패 |
-| 401 | 인증 실패 / 토큰 없음 |
-| 403 | 권한 없음 |
-| 404 | 리소스 없음 |
-| 409 | 중복/충돌 (이메일, 이미 소속, 중복 임포트 등) |
-| 500 | 서버 오류 |
+
+| HTTP | 상황                           |
+| ---- | ---------------------------- |
+| 400  | validation 실패                |
+| 401  | 인증 실패 / 토큰 없음                |
+| 403  | 권한 없음                        |
+| 404  | 리소스 없음                       |
+| 409  | 중복/충돌 (이메일, 이미 소속, 중복 임포트 등) |
+| 500  | 서버 오류                        |
+
 
 ---
 
 ## DB 설정 (application.yml)
 
-| 항목 | 값 |
-|------|-----|
-| URL | `jdbc:postgresql://localhost:5432/${DB_NAME:housebook}` |
-| User | `${DB_USER:sumin}` |
-| Password | `${DB_PASSWORD:}` |
-| JPA ddl-auto | `validate` |
-| Flyway | `classpath:db/migration` |
-| 마이그레이션 | `V1__init.sql`, `V2__import_batches.sql`, `V3__add_birth_date_to_users.sql`, `V4__category_hierarchy.sql` |
-| CORS | `http://localhost:8081`, `http://localhost:19006` |
+
+| 항목           | 값                                                                                                         |
+| ------------ | --------------------------------------------------------------------------------------------------------- |
+| URL          | `jdbc:postgresql://localhost:5432/${DB_NAME:housebook}`                                                   |
+| User         | `${DB_USER:sumin}`                                                                                        |
+| Password     | `${DB_PASSWORD:}`                                                                                         |
+| JPA ddl-auto | `validate`                                                                                                |
+| Flyway       | `classpath:db/migration`                                                                                  |
+| 마이그레이션       | `V1__init.sql`, `V2__import_batches.sql`, `V3__add_birth_date_to_users.sql`, `V4__category_hierarchy.sql` |
+| CORS         | `http://localhost:8081`, `http://localhost:19006`                                                         |
+
+
