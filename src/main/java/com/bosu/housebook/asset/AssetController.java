@@ -3,6 +3,7 @@ package com.bosu.housebook.asset;
 import com.bosu.housebook.asset.dto.AssetRefreshResponse;
 import com.bosu.housebook.asset.dto.AssetRequest;
 import com.bosu.housebook.asset.dto.AssetResponse;
+import com.bosu.housebook.asset.dto.AssetSnapshotResponse;
 import com.bosu.housebook.asset.dto.AssetSummaryResponse;
 import com.bosu.housebook.asset.dto.StockSymbolCandidate;
 import com.bosu.housebook.auth.CurrentUserId;
@@ -26,10 +27,13 @@ public class AssetController {
 
     private final AssetService assetService;
     private final StockSymbolSearchService stockSymbolSearchService;
+    private final AssetSnapshotService assetSnapshotService;
 
-    public AssetController(AssetService assetService, StockSymbolSearchService stockSymbolSearchService) {
+    public AssetController(AssetService assetService, StockSymbolSearchService stockSymbolSearchService,
+            AssetSnapshotService assetSnapshotService) {
         this.assetService = assetService;
         this.stockSymbolSearchService = stockSymbolSearchService;
+        this.assetSnapshotService = assetSnapshotService;
     }
 
     @GetMapping
@@ -40,6 +44,12 @@ public class AssetController {
     @GetMapping("/summary")
     public AssetSummaryResponse getSummary(@CurrentUserId Long userId) {
         return assetService.getSummary(userId);
+    }
+
+    @GetMapping("/snapshots")
+    public List<AssetSnapshotResponse> getSnapshots(@CurrentUserId Long userId,
+            @RequestParam(defaultValue = "90") int days) {
+        return assetSnapshotService.getTrend(userId, days);
     }
 
     @PostMapping

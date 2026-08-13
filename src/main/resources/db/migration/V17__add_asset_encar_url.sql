@@ -1,0 +1,1 @@
+ALTER TABLE assets ADD COLUMN encar_url VARCHAR(2000);

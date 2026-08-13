@@ -6,6 +6,7 @@ public enum AssetType {
     STOCK,
     CRYPTO,
     CASH,
+    LOAN,
     OTHER;
 
     public boolean isLivePriced() {
