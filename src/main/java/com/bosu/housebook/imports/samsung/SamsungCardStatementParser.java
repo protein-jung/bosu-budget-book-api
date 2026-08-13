@@ -25,20 +25,19 @@ import org.springframework.stereotype.Component;
  *
  * <ul>
  *   <li>신규 포맷(2026.08~): "일시불"/"해외이용"/"청구요약" 시트로 분리, 날짜는
- *       "20260702"(yyyyMMdd), 금액은 "40,000" 같은 콤마 포함 문자열.</li>
+ *       "20260702"(yyyyMMdd), 금액은 "40,000" 같은 콤마 포함 문자열. 해외이용 거래도
+ *       원화 환산된 최종 결제금액으로 "일시불" 시트에 이미 포함돼 있고, "해외이용" 시트는
+ *       참고용 상세 내역이라 별도로 읽지 않는다 — 그래서 "일시불" 시트 행은 전부 그대로
+ *       가져온다.</li>
  *   <li>구 포맷: 시트 하나에 이용대금 명세서 전체(합계/일시불/해외이용 상세)가 들어있고,
- *       날짜는 "26.07.02", 금액은 숫자 셀.</li>
+ *       날짜는 "26.07.02", 금액은 숫자 셀. 이 포맷은 해외이용 상세가 같은 시트 안에 별도
+ *       섹션으로 다시 나열되므로, 그 (일자, 가맹점)과 일치하는 행은 중복으로 보고 제외한다.</li>
  * </ul>
- *
- * 두 포맷 모두 해외이용 거래는 일시불 표(신규: "일시불" 시트, 구: 메인 표)에 원화 환산된
- * 최종 결제금액으로 이미 들어있으므로, 해외이용 쪽의 (일자, 가맹점)과 일치하는 행은
- * 제외한다(해외이용은 빼고 일시불만 가져오기).
  */
 @Component
 public class SamsungCardStatementParser implements StatementParser {
 
     private static final String NEW_FORMAT_SHEET_DOMESTIC = "일시불";
-    private static final String NEW_FORMAT_SHEET_FOREIGN = "해외이용";
     private static final Pattern NEW_DATE_PATTERN = Pattern.compile("\\d{8}");
     private static final String NEW_HEADER_DATE = "이용일";
     private static final String NEW_HEADER_MERCHANT = "가맹점";
@@ -69,9 +68,6 @@ public class SamsungCardStatementParser implements StatementParser {
 
     private List<ParsedTransaction> parseNewFormat(Workbook workbook) {
         Sheet domesticSheet = workbook.getSheet(NEW_FORMAT_SHEET_DOMESTIC);
-        Sheet foreignSheet = workbook.getSheet(NEW_FORMAT_SHEET_FOREIGN);
-        Set<String> foreignKeys = foreignSheet == null ? Set.of()
-                : findExclusionKeys(foreignSheet, NEW_DATE_PATTERN, NEW_HEADER_DATE, NEW_HEADER_MERCHANT);
 
         ExcelParsingUtils.HeaderRow header = ExcelParsingUtils.findHeaderRow(domesticSheet,
                 Set.of(NEW_HEADER_DATE, NEW_HEADER_MERCHANT, NEW_HEADER_AMOUNT));
@@ -96,9 +92,6 @@ public class SamsungCardStatementParser implements StatementParser {
             String merchant = ExcelParsingUtils.stringValue(row.getCell(merchantCol)).trim();
             BigDecimal amount = ExcelParsingUtils.numericValue(row.getCell(amountCol));
             if (merchant.isEmpty() || amount == null || amount.signum() <= 0) {
-                continue;
-            }
-            if (foreignKeys.contains(exclusionKey(dateText, merchant))) {
                 continue;
             }
 
