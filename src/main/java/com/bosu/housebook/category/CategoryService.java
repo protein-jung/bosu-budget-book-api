@@ -1,5 +1,6 @@
 package com.bosu.housebook.category;
 
+import com.bosu.housebook.category.dto.CategoryMemoResponse;
 import com.bosu.housebook.category.dto.CategoryRequest;
 import com.bosu.housebook.category.dto.CategoryResponse;
 import com.bosu.housebook.common.ApiException;
@@ -21,15 +22,18 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final CategoryMonthlyTargetRepository categoryMonthlyTargetRepository;
+    private final CategoryMemoRepository categoryMemoRepository;
     private final HouseholdRepository householdRepository;
     private final HouseholdService householdService;
     private final CategoryDefaultSeeder categoryDefaultSeeder;
 
     public CategoryService(CategoryRepository categoryRepository,
-            CategoryMonthlyTargetRepository categoryMonthlyTargetRepository, HouseholdRepository householdRepository,
+            CategoryMonthlyTargetRepository categoryMonthlyTargetRepository,
+            CategoryMemoRepository categoryMemoRepository, HouseholdRepository householdRepository,
             HouseholdService householdService, CategoryDefaultSeeder categoryDefaultSeeder) {
         this.categoryRepository = categoryRepository;
         this.categoryMonthlyTargetRepository = categoryMonthlyTargetRepository;
+        this.categoryMemoRepository = categoryMemoRepository;
         this.householdRepository = householdRepository;
         this.householdService = householdService;
         this.categoryDefaultSeeder = categoryDefaultSeeder;
@@ -48,9 +52,12 @@ public class CategoryService {
     public CategoryResponse create(Long userId, CategoryRequest request) {
         Long householdId = householdService.getHouseholdIdForUser(userId);
         Household household = householdRepository.getReferenceById(householdId);
+        if (request.isGroup() && request.parentId() != null) {
+            throw ApiException.badRequest("상위 카테고리는 다른 카테고리의 하위로 지정할 수 없습니다.");
+        }
         Category parent = resolveParent(householdId, request.parentId(), request.type());
         Category category = new Category(household, request.name(), request.type(), request.color(),
-                request.icon(), parent, 0, request.targetAmount());
+                request.icon(), parent, 0, request.targetAmount(), request.isGroup());
         categoryRepository.save(category);
         return CategoryResponse.from(category);
     }
@@ -61,8 +68,11 @@ public class CategoryService {
         if (request.parentId() != null && request.parentId().equals(categoryId)) {
             throw ApiException.badRequest("자기 자신을 상위 카테고리로 지정할 수 없습니다.");
         }
+        if (request.isGroup() && request.parentId() != null) {
+            throw ApiException.badRequest("상위 카테고리는 다른 카테고리의 하위로 지정할 수 없습니다.");
+        }
         Category parent = resolveParent(category.getHousehold().getId(), request.parentId(), category.getType());
-        category.update(request.name(), request.color(), request.icon(), request.targetAmount());
+        category.update(request.name(), request.color(), request.icon(), request.targetAmount(), request.isGroup());
         category.updateParent(parent);
         return CategoryResponse.from(category);
     }
@@ -110,6 +120,29 @@ public class CategoryService {
     public void clearMonthlyTarget(Long userId, Long categoryId, int year, int month) {
         getOwnedCategory(userId, categoryId);
         categoryMonthlyTargetRepository.deleteByCategoryIdAndYearAndMonth(categoryId, year, month);
+    }
+
+    @Transactional
+    public List<CategoryMemoResponse> getAllMemos(Long userId) {
+        Long householdId = householdService.getHouseholdIdForUser(userId);
+        return categoryMemoRepository.findByCategoryHouseholdId(householdId).stream()
+                .map(CategoryMemoResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public CategoryMemoResponse setMemo(Long userId, Long categoryId, int year, int month, String memo) {
+        Category category = getOwnedCategory(userId, categoryId);
+        CategoryMemo entity = categoryMemoRepository.findByCategoryIdAndYearAndMonth(categoryId, year, month)
+                .orElseGet(() -> categoryMemoRepository.save(new CategoryMemo(category, year, month, memo)));
+        entity.updateMemo(memo);
+        return CategoryMemoResponse.from(entity);
+    }
+
+    @Transactional
+    public void clearMemo(Long userId, Long categoryId, int year, int month) {
+        getOwnedCategory(userId, categoryId);
+        categoryMemoRepository.deleteByCategoryIdAndYearAndMonth(categoryId, year, month);
     }
 
     @Transactional

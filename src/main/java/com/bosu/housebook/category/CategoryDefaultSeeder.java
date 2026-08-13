@@ -69,7 +69,7 @@ public class CategoryDefaultSeeder {
         for (Group group : EXPENSE_GROUPS) {
             Category parent = categoryRepository.save(new Category(
                     household, group.name(), TransactionType.EXPENSE, group.color(), group.icon(), null,
-                    groupOrder++));
+                    groupOrder++, null, true));
             int leafOrder = 0;
             for (Leaf leaf : group.children()) {
                 categoryRepository.save(new Category(

@@ -54,17 +54,27 @@ public class Category extends BaseTimeEntity {
     @Column(name = "target_amount")
     private BigDecimal targetAmount;
 
+    /** 하위 카테고리를 묶기만 하는 상위(그룹) 카테고리인지. true면 거래 입력 시 선택 대상에서
+     * 빠진다 — 하위가 아직 없어도 통계/설정 화면에서 그룹으로 취급하기 위한 명시적 표시. */
+    @Column(name = "is_group", nullable = false)
+    private boolean isGroup;
+
     public Category(Household household, String name, TransactionType type, String color, String icon) {
-        this(household, name, type, color, icon, null, 0, null);
+        this(household, name, type, color, icon, null, 0, null, false);
     }
 
     public Category(Household household, String name, TransactionType type, String color, String icon,
             Category parent, int sortOrder) {
-        this(household, name, type, color, icon, parent, sortOrder, null);
+        this(household, name, type, color, icon, parent, sortOrder, null, false);
     }
 
     public Category(Household household, String name, TransactionType type, String color, String icon,
             Category parent, int sortOrder, BigDecimal targetAmount) {
+        this(household, name, type, color, icon, parent, sortOrder, targetAmount, false);
+    }
+
+    public Category(Household household, String name, TransactionType type, String color, String icon,
+            Category parent, int sortOrder, BigDecimal targetAmount, boolean isGroup) {
         this.household = household;
         this.name = name;
         this.type = type;
@@ -73,13 +83,15 @@ public class Category extends BaseTimeEntity {
         this.parent = parent;
         this.sortOrder = sortOrder;
         this.targetAmount = targetAmount;
+        this.isGroup = isGroup;
     }
 
-    public void update(String name, String color, String icon, BigDecimal targetAmount) {
+    public void update(String name, String color, String icon, BigDecimal targetAmount, boolean isGroup) {
         this.name = name;
         this.color = color;
         this.icon = icon;
         this.targetAmount = targetAmount;
+        this.isGroup = isGroup;
     }
 
     public void updateParent(Category parent) {

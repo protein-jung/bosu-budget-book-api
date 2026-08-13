@@ -1,6 +1,8 @@
 package com.bosu.housebook.category;
 
 import com.bosu.housebook.auth.CurrentUserId;
+import com.bosu.housebook.category.dto.CategoryMemoRequest;
+import com.bosu.housebook.category.dto.CategoryMemoResponse;
 import com.bosu.housebook.category.dto.CategoryMonthlyTargetRequest;
 import com.bosu.housebook.category.dto.CategoryReorderRequest;
 import com.bosu.housebook.category.dto.CategoryRequest;
@@ -64,6 +66,24 @@ public class CategoryController {
     public ResponseEntity<Void> clearMonthlyTarget(@CurrentUserId Long userId, @PathVariable Long categoryId,
             @PathVariable int year, @PathVariable int month) {
         categoryService.clearMonthlyTarget(userId, categoryId, year, month);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/memos")
+    public List<CategoryMemoResponse> getAllMemos(@CurrentUserId Long userId) {
+        return categoryService.getAllMemos(userId);
+    }
+
+    @PutMapping("/{categoryId}/memo/{year}/{month}")
+    public CategoryMemoResponse setMemo(@CurrentUserId Long userId, @PathVariable Long categoryId,
+            @PathVariable int year, @PathVariable int month, @Valid @RequestBody CategoryMemoRequest request) {
+        return categoryService.setMemo(userId, categoryId, year, month, request.memo());
+    }
+
+    @DeleteMapping("/{categoryId}/memo/{year}/{month}")
+    public ResponseEntity<Void> clearMemo(@CurrentUserId Long userId, @PathVariable Long categoryId,
+            @PathVariable int year, @PathVariable int month) {
+        categoryService.clearMemo(userId, categoryId, year, month);
         return ResponseEntity.noContent().build();
     }
 

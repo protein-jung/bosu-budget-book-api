@@ -12,7 +12,8 @@ public record CategoryResponse(
         String icon,
         Long parentId,
         Integer sortOrder,
-        BigDecimal targetAmount) {
+        BigDecimal targetAmount,
+        boolean isGroup) {
 
     public static CategoryResponse from(Category category) {
         Long parentId = category.getParent() == null ? null : category.getParent().getId();
@@ -24,6 +25,7 @@ public record CategoryResponse(
                 category.getIcon(),
                 parentId,
                 category.getSortOrder(),
-                category.getTargetAmount());
+                category.getTargetAmount(),
+                category.isGroup());
     }
 }

@@ -13,5 +13,6 @@ public record CategoryRequest(
         @Size(max = 20) String color,
         @Size(max = 8) String icon,
         Long parentId,
-        @DecimalMin(value = "0", inclusive = true) BigDecimal targetAmount) {
+        @DecimalMin(value = "0", inclusive = true) BigDecimal targetAmount,
+        boolean isGroup) {
 }
