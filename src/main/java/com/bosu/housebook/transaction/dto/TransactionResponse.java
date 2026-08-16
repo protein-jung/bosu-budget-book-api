@@ -22,6 +22,7 @@ public record TransactionResponse(
 
     public static TransactionResponse from(Transaction transaction) {
         var card = transaction.getCard();
+        var user = transaction.getUser();
         return new TransactionResponse(
                 transaction.getId(),
                 transaction.getType(),
@@ -33,8 +34,8 @@ public record TransactionResponse(
                 transaction.getCategory().getIcon(),
                 card != null ? card.getId() : null,
                 card != null ? card.getName() : null,
-                transaction.getUser().getId(),
-                transaction.getUser().getName(),
+                user != null ? user.getId() : null,
+                user != null ? user.getName() : "탈퇴한 사용자",
                 transaction.getMemo());
     }
 }

@@ -259,13 +259,18 @@ public class StatisticsService {
                 .toList();
     }
 
+    private static final Long DELETED_USER_KEY = 0L;
+
     private List<MemberStat> byMember(List<Transaction> transactions) {
         Map<Long, MemberStat> stats = new LinkedHashMap<>();
         for (Transaction t : transactions) {
             var user = t.getUser();
+            Long key = user != null ? user.getId() : DELETED_USER_KEY;
+            Long userId = user != null ? user.getId() : null;
+            String userName = user != null ? user.getName() : "탈퇴한 사용자";
             BigDecimal income = t.getType() == TransactionType.INCOME ? t.getAmount() : BigDecimal.ZERO;
             BigDecimal expense = t.getType() == TransactionType.EXPENSE ? t.getAmount() : BigDecimal.ZERO;
-            stats.merge(user.getId(), new MemberStat(user.getId(), user.getName(), income, expense),
+            stats.merge(key, new MemberStat(userId, userName, income, expense),
                     (existing, added) -> new MemberStat(existing.userId(), existing.userName(),
                             existing.income().add(added.income()), existing.expense().add(added.expense())));
         }

@@ -34,6 +34,9 @@ public class User extends BaseTimeEntity {
     @Column(name = "birth_date")
     private LocalDate birthDate;
 
+    @Column(nullable = false)
+    private boolean blocked;
+
     public User(String email, String password, String name, LocalDate birthDate) {
         this.email = email;
         this.password = password;
@@ -43,5 +46,17 @@ public class User extends BaseTimeEntity {
 
     public void updateBirthDate(LocalDate birthDate) {
         this.birthDate = birthDate;
+    }
+
+    public void updateName(String name) {
+        this.name = name;
+    }
+
+    public void updatePassword(String password) {
+        this.password = password;
+    }
+
+    public void updateBlocked(boolean blocked) {
+        this.blocked = blocked;
     }
 }
