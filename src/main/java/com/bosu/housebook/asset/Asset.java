@@ -88,6 +88,16 @@ public class Asset extends BaseTimeEntity {
     @Column(name = "region_dong_name")
     private String regionDongName;
 
+    /** 부동산 전용: 자가/전세/월세 구분. 기본값 OWNED. 전세는 manualValue를 전세보증금으로,
+     * 월세는 manualValue를 보증금 + monthlyRent를 월세로 쓴다. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "real_estate_category")
+    private RealEstateCategory realEstateCategory;
+
+    /** 부동산 전용(월세만): 월세(원). */
+    @Column(name = "monthly_rent", precision = 16, scale = 2)
+    private BigDecimal monthlyRent;
+
     /** STOCK 전용(선택): 일반 계좌 보유인지 연금(IRP/연금저축) 계좌 보유인지. 기본값 GENERAL. */
     @Enumerated(EnumType.STRING)
     @Column(name = "account_category", nullable = false)
@@ -155,7 +165,8 @@ public class Asset extends BaseTimeEntity {
             AccountCategory accountCategory, User owner, CashCategory cashCategory, LocalDate maturityDate,
             BigDecimal cashInterestRate, LocalDate cashStartDate, LocalDate purchaseDate, String encarUrl,
             BigDecimal loanPrincipal, LocalDate loanStartMonth, Integer loanTermMonths,
-            BigDecimal loanMonthlyPayment, BigDecimal loanInterestRate, LoanRepaymentType loanRepaymentType) {
+            BigDecimal loanMonthlyPayment, BigDecimal loanInterestRate, LoanRepaymentType loanRepaymentType,
+            RealEstateCategory realEstateCategory, BigDecimal monthlyRent) {
         this.household = household;
         this.type = type;
         this.name = name;
@@ -179,6 +190,12 @@ public class Asset extends BaseTimeEntity {
         this.cashStartDate = type == AssetType.CASH ? cashStartDate : null;
         this.purchaseDate = type == AssetType.VEHICLE ? purchaseDate : null;
         this.encarUrl = type == AssetType.VEHICLE ? encarUrl : null;
+        this.realEstateCategory = type == AssetType.REAL_ESTATE
+                ? (realEstateCategory != null ? realEstateCategory : RealEstateCategory.OWNED)
+                : null;
+        this.monthlyRent = type == AssetType.REAL_ESTATE && this.realEstateCategory == RealEstateCategory.WOLSE
+                ? monthlyRent
+                : null;
         boolean isLoan = type == AssetType.LOAN;
         this.loanPrincipal = isLoan ? loanPrincipal : null;
         this.loanStartMonth = isLoan ? loanStartMonth : null;
@@ -196,7 +213,7 @@ public class Asset extends BaseTimeEntity {
             CashCategory cashCategory, LocalDate maturityDate, BigDecimal cashInterestRate, LocalDate cashStartDate,
             LocalDate purchaseDate, String encarUrl, BigDecimal loanPrincipal, LocalDate loanStartMonth,
             Integer loanTermMonths, BigDecimal loanMonthlyPayment, BigDecimal loanInterestRate,
-            LoanRepaymentType loanRepaymentType) {
+            LoanRepaymentType loanRepaymentType, RealEstateCategory realEstateCategory, BigDecimal monthlyRent) {
         this.type = type;
         this.name = name;
         this.custodian = custodian;
@@ -218,6 +235,12 @@ public class Asset extends BaseTimeEntity {
         this.cashStartDate = type == AssetType.CASH ? cashStartDate : null;
         this.purchaseDate = type == AssetType.VEHICLE ? purchaseDate : null;
         this.encarUrl = type == AssetType.VEHICLE ? encarUrl : null;
+        this.realEstateCategory = type == AssetType.REAL_ESTATE
+                ? (realEstateCategory != null ? realEstateCategory : RealEstateCategory.OWNED)
+                : null;
+        this.monthlyRent = type == AssetType.REAL_ESTATE && this.realEstateCategory == RealEstateCategory.WOLSE
+                ? monthlyRent
+                : null;
         boolean isLoan = type == AssetType.LOAN;
         this.loanPrincipal = isLoan ? loanPrincipal : null;
         this.loanStartMonth = isLoan ? loanStartMonth : null;
@@ -234,18 +257,27 @@ public class Asset extends BaseTimeEntity {
         this.priceUpdatedAt = updatedAt;
     }
 
-    /** REAL_ESTATE는 국토부 실거래가(있으면)를 우선하고 없으면 직접 입력값, VEHICLE은 encarUrl 기반으로
-     * 조회해 캐시해둔 매물 평균가(있으면)를 우선하고 없으면 직접 입력한 구매가, LOAN은 상환 스케줄로
-     * 추정한 잔액을 음수로, 심볼이 있는 STOCK/CRYPTO는 단가*수량, 그 외(심볼 없는 STOCK/CRYPTO
+    /** REAL_ESTATE 중 자가(OWNED)는 국토부 실거래가(있으면)를 우선하고 없으면 직접 입력값, 전세/월세는
+     * 매매 시세와 무관하므로 직접 입력한 보증금(manualValue)을 그대로 자산가치로 쓴다(월세는 별도로
+     * monthlyRent를 갖지만 자산가치에는 포함하지 않는다 — 대출의 월 납입금처럼 정보성 표시일 뿐).
+     * VEHICLE은 encarUrl 기반으로 조회해 캐시해둔 매물 평균가(있으면)를 우선하고 없으면 직접 입력한
+     * 구매가, LOAN은 상환 스케줄로 추정한 잔액을 음수로, GOLD/SILVER는 그램당 시세(currentPrice)
+     * * 중량(quantity, 그램), 심볼이 있는 STOCK/CRYPTO는 단가*수량, 그 외(심볼 없는 STOCK/CRYPTO
      * 포함 — 예: 계좌 내 현금성 잔고, 원리금보장형 상품)는 직접 입력한 평가금액. 시세를 아직 못
      * 받아왔으면 null. */
     public BigDecimal getCurrentValue() {
+        if (type == AssetType.REAL_ESTATE && realEstateCategory != null && realEstateCategory != RealEstateCategory.OWNED) {
+            return manualValue;
+        }
         if (type == AssetType.REAL_ESTATE || type == AssetType.VEHICLE) {
             return currentPrice != null ? currentPrice : manualValue;
         }
         if (type == AssetType.LOAN) {
             BigDecimal remaining = estimateLoanRemainingBalance();
             return remaining != null ? remaining.negate() : null;
+        }
+        if (type == AssetType.GOLD || type == AssetType.SILVER) {
+            return currentPrice != null && quantity != null ? currentPrice.multiply(quantity) : null;
         }
         if (type.isLivePriced() && symbol != null && !symbol.isBlank()) {
             return currentPrice != null && quantity != null ? currentPrice.multiply(quantity) : null;

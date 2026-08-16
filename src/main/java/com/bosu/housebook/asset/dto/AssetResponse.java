@@ -5,6 +5,7 @@ import com.bosu.housebook.asset.Asset;
 import com.bosu.housebook.asset.AssetType;
 import com.bosu.housebook.asset.CashCategory;
 import com.bosu.housebook.asset.LoanRepaymentType;
+import com.bosu.housebook.asset.RealEstateCategory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -44,7 +45,9 @@ public record AssetResponse(
         BigDecimal loanMonthlyPayment,
         BigDecimal loanInterestRate,
         LoanRepaymentType loanRepaymentType,
-        BigDecimal currentMonthlyPayment) {
+        BigDecimal currentMonthlyPayment,
+        RealEstateCategory realEstateCategory,
+        BigDecimal monthlyRent) {
 
     public static AssetResponse from(Asset asset) {
         return new AssetResponse(
@@ -82,6 +85,8 @@ public record AssetResponse(
                 asset.getLoanMonthlyPayment(),
                 asset.getLoanInterestRate(),
                 asset.getLoanRepaymentType(),
-                asset.getCurrentMonthlyPayment());
+                asset.getCurrentMonthlyPayment(),
+                asset.getRealEstateCategory(),
+                asset.getMonthlyRent());
     }
 }

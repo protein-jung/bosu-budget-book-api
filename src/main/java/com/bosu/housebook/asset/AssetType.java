@@ -5,6 +5,8 @@ public enum AssetType {
     VEHICLE,
     STOCK,
     CRYPTO,
+    GOLD,
+    SILVER,
     CASH,
     LOAN,
     OTHER;

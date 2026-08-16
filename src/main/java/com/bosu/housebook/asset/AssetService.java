@@ -64,7 +64,8 @@ public class AssetService {
                 request.accountCategory(), owner, request.cashCategory(), request.maturityDate(),
                 request.cashInterestRate(), request.cashStartDate(), request.purchaseDate(), request.encarUrl(),
                 request.loanPrincipal(), request.loanStartMonth(), request.loanTermMonths(),
-                request.loanMonthlyPayment(), request.loanInterestRate(), request.loanRepaymentType());
+                request.loanMonthlyPayment(), request.loanInterestRate(), request.loanRepaymentType(),
+                request.realEstateCategory(), request.monthlyRent());
         assetRepository.save(asset);
         return AssetResponse.from(asset);
     }
@@ -80,7 +81,8 @@ public class AssetService {
                 request.accountCategory(), request.cashCategory(), request.maturityDate(),
                 request.cashInterestRate(), request.cashStartDate(), request.purchaseDate(), request.encarUrl(),
                 request.loanPrincipal(), request.loanStartMonth(), request.loanTermMonths(),
-                request.loanMonthlyPayment(), request.loanInterestRate(), request.loanRepaymentType());
+                request.loanMonthlyPayment(), request.loanInterestRate(), request.loanRepaymentType(),
+                request.realEstateCategory(), request.monthlyRent());
         return AssetResponse.from(asset);
     }
 
@@ -161,6 +163,12 @@ public class AssetService {
             validateLoan(request);
             return;
         }
+        if (request.type() == AssetType.GOLD || request.type() == AssetType.SILVER) {
+            if (request.quantity() == null || request.quantity().signum() <= 0) {
+                throw ApiException.badRequest("중량을 입력해야 합니다.");
+            }
+            return;
+        }
         boolean hasSymbol = request.symbol() != null && !request.symbol().isBlank();
         if (request.type().isLivePriced() && hasSymbol) {
             if (request.quantity() == null || request.quantity().signum() <= 0) {
@@ -168,6 +176,10 @@ public class AssetService {
             }
         } else if (request.manualValue() == null || request.manualValue().signum() < 0) {
             throw ApiException.badRequest("평가금액을 입력해야 합니다.");
+        }
+        if (request.type() == AssetType.REAL_ESTATE && request.realEstateCategory() == RealEstateCategory.WOLSE
+                && (request.monthlyRent() == null || request.monthlyRent().signum() < 0)) {
+            throw ApiException.badRequest("월세를 입력해야 합니다.");
         }
     }
 
