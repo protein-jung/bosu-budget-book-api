@@ -172,6 +172,8 @@ users ──< household_members >── households
 | POST   | `/api/auth/login`                   | 공개   | 로그인          |
 | GET    | `/api/users/me`                     | JWT  | 내 정보 조회      |
 | PATCH  | `/api/users/me`                     | JWT  | 내 정보 수정      |
+| PUT    | `/api/users/me/password`            | JWT  | 비밀번호 변경      |
+| DELETE | `/api/users/me`                     | JWT  | 회원 탈퇴        |
 | POST   | `/api/households`                   | JWT  | 가계부 생성       |
 | GET    | `/api/households/me`                | JWT  | 내 가계부 조회     |
 | GET    | `/api/households/invite-code`       | JWT  | 초대 코드 조회     |
@@ -191,6 +193,13 @@ users ──< household_members >── households
 | GET    | `/api/statistics/monthly`           | JWT  | 월별 통계        |
 | GET    | `/api/statistics/range`             | JWT  | 기간(월별 추이) 통계 |
 | POST   | `/api/imports`                      | JWT  | 명세서 임포트      |
+| POST   | `/api/admin/auth/login`             | 공개  | 관리자 로그인      |
+| GET    | `/api/admin/stats`                  | 관리자 JWT | 서비스 통계  |
+| GET    | `/api/admin/users`                  | 관리자 JWT | 전체 회원 목록 |
+| GET    | `/api/admin/households`             | 관리자 JWT | 전체 가계부 목록 |
+| POST   | `/api/admin/users/{userId}/block`   | 관리자 JWT | 회원 차단   |
+| POST   | `/api/admin/users/{userId}/unblock` | 관리자 JWT | 회원 차단 해제 |
+| DELETE | `/api/admin/users/{userId}`         | 관리자 JWT | 회원 강제 탈퇴 |
 
 
 ---
@@ -290,11 +299,49 @@ users ──< household_members >── households
 
 ```json
 {
+  "name": "홍길동",
   "birthDate": "1990-01-01"
 }
 ```
 
-**DB**: `users.birth_date` UPDATE
+**DB**: `users.name`, `users.birth_date` UPDATE
+
+---
+
+### PUT `/api/users/me/password`
+
+**Request Body**
+
+```json
+{
+  "currentPassword": "oldPassword123",
+  "newPassword": "newPassword456"
+}
+```
+
+**Response**: `204 No Content` (현재 비밀번호가 틀리면 `401 Unauthorized`)
+
+**DB**: `users.password` UPDATE
+
+---
+
+### DELETE `/api/users/me`
+
+**Request Body**
+
+```json
+{
+  "password": "currentPassword123"
+}
+```
+
+**Response**: `204 No Content` (비밀번호가 틀리면 `401 Unauthorized`)
+
+탈퇴 시 소속 가계부 멤버십은 함께 삭제되고, 본인이 작성한 거래는 삭제되지 않고 작성자만
+"탈퇴한 사용자"로 표시됩니다(가족이 공유하는 가계부 기록은 보존). 본인 소유 카드/자산은
+소유자 없음으로 남습니다.
+
+**DB**: `users` DELETE (`household_members` CASCADE, `transactions.user_id`/`cards.owner_user_id`/`assets.owner_user_id` SET NULL)
 
 ---
 
@@ -759,6 +806,71 @@ household 소유 거래 UPDATE (작성자 변경 없음)
 8. `import_batches` INSERT
 
 **관련 테이블**: `import_batches`, `transactions`, `categories`, `cards`, `households`, `household_members`, `users`
+
+---
+
+## 9. Admin
+
+일반 회원 계정과 별개의 **마스터 관리자 계정**(`users` 테이블에 없음, `application.yml`의
+`admin.username`/`admin.password-hash`로만 존재)으로 로그인해서 쓰는 전용 API. 발급되는 JWT에
+`role: ADMIN` 클레임이 들어가고, `/api/admin/**`(로그인 제외)는 이 클레임이 있어야만 접근 가능.
+
+### POST `/api/admin/auth/login` — 공개
+
+**Request Body**
+
+```json
+{ "username": "admin", "password": "..." }
+```
+
+**Response**
+
+```json
+{ "accessToken": "..." }
+```
+
+**DB**: 없음 (설정값과 비교만 함)
+
+---
+
+### GET `/api/admin/stats`
+
+전체 회원 수, 가계부 수, 거래 수, 최근 7일 신규 가입/가계부 수.
+
+**DB**: `users`, `households`, `transactions` COUNT
+
+---
+
+### GET `/api/admin/users`
+
+전체 회원 목록. 각 회원의 소속 가계부, 가계부 내 역할(OWNER/MEMBER), 작성한 거래 수, 차단 여부 포함.
+
+**DB**: `users`, `household_members`, `households`, `transactions` SELECT
+
+---
+
+### GET `/api/admin/households`
+
+전체 가계부 목록. 구성원 이름, 거래 수 포함.
+
+**DB**: `households`, `household_members`, `users`, `transactions` SELECT
+
+---
+
+### POST `/api/admin/users/{userId}/block` / `POST .../unblock`
+
+회원 로그인 차단/해제. 차단된 계정은 `/api/auth/login`에서 `403`.
+
+**DB**: `users.blocked` UPDATE
+
+---
+
+### DELETE `/api/admin/users/{userId}`
+
+관리자가 비밀번호 확인 없이 강제 탈퇴시킴. 동작은 본인 탈퇴(`DELETE /api/users/me`)와 동일 —
+거래는 남고 작성자만 "탈퇴한 사용자"로 표시됨.
+
+**DB**: `users` DELETE (`household_members` CASCADE, `transactions`/`cards`/`assets`의 user 참조 SET NULL)
 
 ---
 
