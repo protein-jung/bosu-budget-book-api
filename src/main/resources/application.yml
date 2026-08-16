@@ -34,6 +34,12 @@ app:
   kakao:
     api-key: ${KAKAO_API_KEY:}
 
+admin:
+  username: ${ADMIN_USERNAME:admin}
+  # 개발용 기본 비밀번호는 "AdminDev1234!" (BCrypt 해시). 운영 배포 시 반드시
+  # ADMIN_USERNAME/ADMIN_PASSWORD_HASH 환경변수로 재설정할 것.
+  password-hash: ${ADMIN_PASSWORD_HASH:$2a$10$2JCRJxJTshDMXxaiC2VSmOxRkUja13Wy/8P6VhRd1xlW1YSMuWiMS}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

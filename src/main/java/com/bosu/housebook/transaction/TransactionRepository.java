@@ -19,4 +19,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     Optional<Transaction> findByIdAndHouseholdId(Long id, Long householdId);
 
     Optional<Transaction> findFirstByHouseholdIdOrderByTransactionDateAsc(Long householdId);
+
+    long countByHouseholdId(Long householdId);
+
+    long countByUserId(Long userId);
 }

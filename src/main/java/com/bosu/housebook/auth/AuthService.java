@@ -42,6 +42,9 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw ApiException.unauthorized("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
+        if (user.isBlocked()) {
+            throw ApiException.forbidden("차단된 계정입니다. 관리자에게 문의해주세요.");
+        }
         return toTokenResponse(user);
     }
 
