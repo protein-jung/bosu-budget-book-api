@@ -40,6 +40,7 @@ public class ImportService {
     private static final String UNCATEGORIZED_NAME = "미분류";
     private static final String UNCATEGORIZED_COLOR = "#94a3b8";
     private static final String UNCATEGORIZED_ICON = "❓";
+    private static final String COUPANG_CORP_MERCHANT_NAME = "쿠팡 주식회사";
 
     private final Map<ImportProvider, StatementParser> parsers;
     private final HouseholdService householdService;
@@ -110,6 +111,12 @@ public class ImportService {
         BigDecimal total = BigDecimal.ZERO;
         int skippedCount = 0;
         for (ParsedTransaction row : parsed) {
+            if (row.merchantName().contains(COUPANG_CORP_MERCHANT_NAME)) {
+                // 쿠팡 주문내역은 COUPANG 명세서로 상품 단위로 따로 들어오므로, 카드/계좌 명세서의
+                // "쿠팡 주식회사" 결제 내역은 중복이라 가져오지 않는다.
+                skippedCount++;
+                continue;
+            }
             String key = duplicateKey(row.transactionDate(), row.amount(), row.merchantName());
             int remaining = existingCounts.getOrDefault(key, 0);
             if (remaining > 0) {
@@ -178,23 +185,45 @@ public class ImportService {
         }
     }
 
+    /**
+     * 분류기가 제안한 카테고리는 이 가계부에 이미 있는 이름일 때만 사용한다. 제안된 이름이 이
+     * 가계부에 없으면(=아직 안 쓰는 카테고리) 새로 만들지 않고 미분류로 저장한다.
+     */
     private Category resolveCategory(Household household, String merchantName,
             Function<String, Optional<MerchantCategoryClassifier.CategorySuggestion>> classify,
             Map<String, Category> cache) {
-        var suggestion = classify.apply(merchantName);
-        String name = suggestion.map(MerchantCategoryClassifier.CategorySuggestion::categoryName)
-                .orElse(UNCATEGORIZED_NAME);
-        String color = suggestion.map(MerchantCategoryClassifier.CategorySuggestion::color)
-                .orElse(UNCATEGORIZED_COLOR);
-        String icon = suggestion.map(MerchantCategoryClassifier.CategorySuggestion::icon)
-                .orElse(UNCATEGORIZED_ICON);
+        Optional<String> suggestedName = classify.apply(merchantName)
+                .map(MerchantCategoryClassifier.CategorySuggestion::categoryName);
+        if (suggestedName.isPresent()) {
+            Category existing = findExistingCategory(household, suggestedName.get(), cache);
+            if (existing != null) {
+                return existing;
+            }
+        }
+        return uncategorized(household, cache);
+    }
 
-        return cache.computeIfAbsent(name, key -> categoryRepository
+    private Category findExistingCategory(Household household, String name, Map<String, Category> cache) {
+        Category cached = cache.get(name);
+        if (cached != null) {
+            return cached;
+        }
+        Optional<Category> found = categoryRepository
+                .findByHouseholdIdAndNameAndType(household.getId(), name, TransactionType.EXPENSE)
+                .stream()
+                .findFirst();
+        found.ifPresent(category -> cache.put(name, category));
+        return found.orElse(null);
+    }
+
+    private Category uncategorized(Household household, Map<String, Category> cache) {
+        return cache.computeIfAbsent(UNCATEGORIZED_NAME, key -> categoryRepository
                 .findByHouseholdIdAndNameAndType(household.getId(), key, TransactionType.EXPENSE)
                 .stream()
                 .findFirst()
                 .orElseGet(() -> categoryRepository
-                        .save(new Category(household, key, TransactionType.EXPENSE, color, icon))));
+                        .save(new Category(household, key, TransactionType.EXPENSE, UNCATEGORIZED_COLOR,
+                                UNCATEGORIZED_ICON))));
     }
 
     private Card resolveCard(Household household, Long cardId, String cardName, ImportProvider provider) {

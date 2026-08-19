@@ -65,17 +65,20 @@ public class CategoryDefaultSeeder {
         this.categoryRepository = categoryRepository;
     }
 
+    private static final String FUTURE_PREP_GROUP_NAME = "미래준비";
+
     public void seed(Household household) {
         int groupOrder = 0;
         for (Group group : EXPENSE_GROUPS) {
+            boolean excludedFromExpenseStats = FUTURE_PREP_GROUP_NAME.equals(group.name());
             Category parent = categoryRepository.save(new Category(
                     household, group.name(), TransactionType.EXPENSE, group.color(), group.icon(), null,
-                    groupOrder++, null, true));
+                    groupOrder++, null, true, excludedFromExpenseStats));
             int leafOrder = 0;
             for (Leaf leaf : group.children()) {
                 categoryRepository.save(new Category(
                         household, leaf.name(), TransactionType.EXPENSE, leaf.color(), leaf.icon(), parent,
-                        leafOrder++));
+                        leafOrder++, null, false, excludedFromExpenseStats));
             }
         }
 

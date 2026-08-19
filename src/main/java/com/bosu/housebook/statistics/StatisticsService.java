@@ -125,17 +125,23 @@ public class StatisticsService {
     }
 
     private MonthlySummaryResponse buildMonthlySummary(List<Category> categories, List<Transaction> transactions) {
-        BigDecimal totalIncome = sumByType(transactions, TransactionType.INCOME);
-        BigDecimal totalExpense = sumByType(transactions, TransactionType.EXPENSE);
+        // 미래준비(저축/투자) 카테고리는 지출이 아니므로 지출 합계·그룹별/카드별/사람별 통계에서 제외한다.
+        // 다만 저축 목표 대비 진행률(buildBudgets)은 byCategory를 그대로 써서 정상 동작해야 하므로
+        // byCategory 자체는 필터링하지 않는다.
+        List<Transaction> expenseStatsTransactions = transactions.stream()
+                .filter(t -> t.getType() != TransactionType.EXPENSE || !t.getCategory().isExcludedFromExpenseStats())
+                .toList();
+        BigDecimal totalIncome = sumByType(expenseStatsTransactions, TransactionType.INCOME);
+        BigDecimal totalExpense = sumByType(expenseStatsTransactions, TransactionType.EXPENSE);
         List<CategoryStat> byCategoryList = byCategory(transactions);
         return new MonthlySummaryResponse(
                 totalIncome,
                 totalExpense,
                 totalIncome.subtract(totalExpense),
                 byCategoryList,
-                byParentCategory(transactions),
-                byCard(transactions),
-                byMember(transactions),
+                byParentCategory(expenseStatsTransactions),
+                byCard(expenseStatsTransactions),
+                byMember(expenseStatsTransactions),
                 buildBudgets(categories, byCategoryList));
     }
 

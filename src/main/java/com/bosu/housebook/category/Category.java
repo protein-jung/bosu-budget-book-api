@@ -59,22 +59,33 @@ public class Category extends BaseTimeEntity {
     @Column(name = "is_group", nullable = false)
     private boolean isGroup;
 
+    /** true면 이 카테고리의 거래는 저축/투자 등으로 간주해 지출 합계·카드별/사람별 통계에서 제외된다
+     * (예: 미래준비). 이름이 아닌 별도 플래그라 카테고리 이름을 바꿔도 유지된다. */
+    @Column(name = "excluded_from_expense_stats", nullable = false)
+    private boolean excludedFromExpenseStats;
+
     public Category(Household household, String name, TransactionType type, String color, String icon) {
-        this(household, name, type, color, icon, null, 0, null, false);
+        this(household, name, type, color, icon, null, 0, null, false, false);
     }
 
     public Category(Household household, String name, TransactionType type, String color, String icon,
             Category parent, int sortOrder) {
-        this(household, name, type, color, icon, parent, sortOrder, null, false);
+        this(household, name, type, color, icon, parent, sortOrder, null, false, false);
     }
 
     public Category(Household household, String name, TransactionType type, String color, String icon,
             Category parent, int sortOrder, BigDecimal targetAmount) {
-        this(household, name, type, color, icon, parent, sortOrder, targetAmount, false);
+        this(household, name, type, color, icon, parent, sortOrder, targetAmount, false, false);
     }
 
     public Category(Household household, String name, TransactionType type, String color, String icon,
             Category parent, int sortOrder, BigDecimal targetAmount, boolean isGroup) {
+        this(household, name, type, color, icon, parent, sortOrder, targetAmount, isGroup, false);
+    }
+
+    public Category(Household household, String name, TransactionType type, String color, String icon,
+            Category parent, int sortOrder, BigDecimal targetAmount, boolean isGroup,
+            boolean excludedFromExpenseStats) {
         this.household = household;
         this.name = name;
         this.type = type;
@@ -84,6 +95,7 @@ public class Category extends BaseTimeEntity {
         this.sortOrder = sortOrder;
         this.targetAmount = targetAmount;
         this.isGroup = isGroup;
+        this.excludedFromExpenseStats = excludedFromExpenseStats;
     }
 
     public void update(String name, String color, String icon, BigDecimal targetAmount, boolean isGroup) {

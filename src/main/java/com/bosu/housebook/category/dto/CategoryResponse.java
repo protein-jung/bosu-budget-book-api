@@ -13,7 +13,8 @@ public record CategoryResponse(
         Long parentId,
         Integer sortOrder,
         BigDecimal targetAmount,
-        boolean isGroup) {
+        boolean isGroup,
+        boolean excludedFromExpenseStats) {
 
     public static CategoryResponse from(Category category) {
         Long parentId = category.getParent() == null ? null : category.getParent().getId();
@@ -26,6 +27,7 @@ public record CategoryResponse(
                 parentId,
                 category.getSortOrder(),
                 category.getTargetAmount(),
-                category.isGroup());
+                category.isGroup(),
+                category.isExcludedFromExpenseStats());
     }
 }
