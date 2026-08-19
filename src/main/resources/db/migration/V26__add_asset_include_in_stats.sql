@@ -1,0 +1,1 @@
+ALTER TABLE assets ADD COLUMN include_in_stats BOOLEAN NOT NULL DEFAULT false;

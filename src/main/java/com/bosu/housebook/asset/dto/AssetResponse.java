@@ -47,7 +47,8 @@ public record AssetResponse(
         LoanRepaymentType loanRepaymentType,
         BigDecimal currentMonthlyPayment,
         RealEstateCategory realEstateCategory,
-        BigDecimal monthlyRent) {
+        BigDecimal monthlyRent,
+        boolean includeInStats) {
 
     public static AssetResponse from(Asset asset) {
         return new AssetResponse(
@@ -87,6 +88,7 @@ public record AssetResponse(
                 asset.getLoanRepaymentType(),
                 asset.getCurrentMonthlyPayment(),
                 asset.getRealEstateCategory(),
-                asset.getMonthlyRent());
+                asset.getMonthlyRent(),
+                asset.isIncludeInStats());
     }
 }

@@ -1,8 +1,6 @@
 package com.bosu.housebook.statistics;
 
 import com.bosu.housebook.category.Category;
-import com.bosu.housebook.category.CategoryMonthlyTarget;
-import com.bosu.housebook.category.CategoryMonthlyTargetRepository;
 import com.bosu.housebook.category.CategoryRepository;
 import com.bosu.housebook.common.ApiException;
 import com.bosu.housebook.common.TransactionType;
@@ -38,14 +36,12 @@ public class StatisticsService {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
-    private final CategoryMonthlyTargetRepository categoryMonthlyTargetRepository;
     private final HouseholdService householdService;
 
     public StatisticsService(TransactionRepository transactionRepository, CategoryRepository categoryRepository,
-            CategoryMonthlyTargetRepository categoryMonthlyTargetRepository, HouseholdService householdService) {
+            HouseholdService householdService) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
-        this.categoryMonthlyTargetRepository = categoryMonthlyTargetRepository;
         this.householdService = householdService;
     }
 
@@ -54,7 +50,7 @@ public class StatisticsService {
         YearMonth yearMonth = YearMonth.of(year, month);
         List<Transaction> transactions = loadTransactions(householdId, yearMonth, yearMonth);
         List<Category> categories = categoryRepository.findByHouseholdIdOrderBySortOrderAscIdAsc(householdId);
-        return buildMonthlySummary(householdId, categories, year, month, transactions);
+        return buildMonthlySummary(categories, transactions);
     }
 
     public RangeSummaryResponse getRangeSummary(Long userId, int fromYear, int fromMonth, int toYear, int toMonth) {
@@ -106,8 +102,7 @@ public class StatisticsService {
 
         List<MonthlyTrendPoint> points = byMonth.entrySet().stream()
                 .map(entry -> {
-                    MonthlySummaryResponse summary = buildMonthlySummary(householdId, categories,
-                            entry.getKey().getYear(), entry.getKey().getMonthValue(), entry.getValue());
+                    MonthlySummaryResponse summary = buildMonthlySummary(categories, entry.getValue());
                     return new MonthlyTrendPoint(
                             entry.getKey().getYear(),
                             entry.getKey().getMonthValue(),
@@ -129,8 +124,7 @@ public class StatisticsService {
                         householdId, fromDate, toDate);
     }
 
-    private MonthlySummaryResponse buildMonthlySummary(Long householdId, List<Category> categories, int year,
-            int month, List<Transaction> transactions) {
+    private MonthlySummaryResponse buildMonthlySummary(List<Category> categories, List<Transaction> transactions) {
         BigDecimal totalIncome = sumByType(transactions, TransactionType.INCOME);
         BigDecimal totalExpense = sumByType(transactions, TransactionType.EXPENSE);
         List<CategoryStat> byCategoryList = byCategory(transactions);
@@ -142,27 +136,23 @@ public class StatisticsService {
                 byParentCategory(transactions),
                 byCard(transactions),
                 byMember(transactions),
-                buildBudgets(householdId, categories, year, month, byCategoryList));
+                buildBudgets(categories, byCategoryList));
     }
 
-    private List<CategoryBudget> buildBudgets(Long householdId, List<Category> categories, int year, int month,
-            List<CategoryStat> byCategoryList) {
-        Map<Long, BigDecimal> overrides = categoryMonthlyTargetRepository
-                .findByCategoryHouseholdIdAndYearAndMonth(householdId, year, month).stream()
-                .collect(Collectors.toMap(t -> t.getCategory().getId(), CategoryMonthlyTarget::getAmount));
+    /** 예산 목표는 달마다 따로 잡지 않고 카테고리에 한 번 설정해두면 매달 그대로 적용된다. */
+    private List<CategoryBudget> buildBudgets(List<Category> categories, List<CategoryStat> byCategoryList) {
         Map<Long, BigDecimal> spentByCategory = byCategoryList.stream()
                 .collect(Collectors.toMap(CategoryStat::categoryId, CategoryStat::amount));
 
         List<CategoryBudget> budgets = new ArrayList<>();
         for (Category category : categories) {
-            boolean overridden = overrides.containsKey(category.getId());
-            BigDecimal target = overridden ? overrides.get(category.getId()) : category.getTargetAmount();
+            BigDecimal target = category.getTargetAmount();
             if (target == null) {
                 continue;
             }
             BigDecimal spent = spentByCategory.getOrDefault(category.getId(), BigDecimal.ZERO);
             budgets.add(new CategoryBudget(category.getId(), category.getName(), category.getColor(),
-                    category.getIcon(), category.getType(), target, spent, overridden));
+                    category.getIcon(), category.getType(), target, spent));
         }
         return budgets;
     }

@@ -3,7 +3,6 @@ package com.bosu.housebook.category;
 import com.bosu.housebook.auth.CurrentUserId;
 import com.bosu.housebook.category.dto.CategoryMemoRequest;
 import com.bosu.housebook.category.dto.CategoryMemoResponse;
-import com.bosu.housebook.category.dto.CategoryMonthlyTargetRequest;
 import com.bosu.housebook.category.dto.CategoryReorderRequest;
 import com.bosu.housebook.category.dto.CategoryRequest;
 import com.bosu.housebook.category.dto.CategoryResponse;
@@ -51,21 +50,6 @@ public class CategoryController {
     public ResponseEntity<Void> reorder(@CurrentUserId Long userId,
             @Valid @RequestBody CategoryReorderRequest request) {
         categoryService.reorder(userId, request.categoryIds());
-        return ResponseEntity.noContent().build();
-    }
-
-    @PutMapping("/{categoryId}/monthly-target/{year}/{month}")
-    public ResponseEntity<Void> setMonthlyTarget(@CurrentUserId Long userId, @PathVariable Long categoryId,
-            @PathVariable int year, @PathVariable int month,
-            @Valid @RequestBody CategoryMonthlyTargetRequest request) {
-        categoryService.setMonthlyTarget(userId, categoryId, year, month, request.amount());
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/{categoryId}/monthly-target/{year}/{month}")
-    public ResponseEntity<Void> clearMonthlyTarget(@CurrentUserId Long userId, @PathVariable Long categoryId,
-            @PathVariable int year, @PathVariable int month) {
-        categoryService.clearMonthlyTarget(userId, categoryId, year, month);
         return ResponseEntity.noContent().build();
     }
 

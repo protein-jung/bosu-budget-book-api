@@ -7,7 +7,6 @@ import com.bosu.housebook.common.ApiException;
 import com.bosu.housebook.household.Household;
 import com.bosu.housebook.household.HouseholdRepository;
 import com.bosu.housebook.household.HouseholdService;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,18 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
-    private final CategoryMonthlyTargetRepository categoryMonthlyTargetRepository;
     private final CategoryMemoRepository categoryMemoRepository;
     private final HouseholdRepository householdRepository;
     private final HouseholdService householdService;
     private final CategoryDefaultSeeder categoryDefaultSeeder;
 
-    public CategoryService(CategoryRepository categoryRepository,
-            CategoryMonthlyTargetRepository categoryMonthlyTargetRepository,
-            CategoryMemoRepository categoryMemoRepository, HouseholdRepository householdRepository,
-            HouseholdService householdService, CategoryDefaultSeeder categoryDefaultSeeder) {
+    public CategoryService(CategoryRepository categoryRepository, CategoryMemoRepository categoryMemoRepository,
+            HouseholdRepository householdRepository, HouseholdService householdService,
+            CategoryDefaultSeeder categoryDefaultSeeder) {
         this.categoryRepository = categoryRepository;
-        this.categoryMonthlyTargetRepository = categoryMonthlyTargetRepository;
         this.categoryMemoRepository = categoryMemoRepository;
         this.householdRepository = householdRepository;
         this.householdService = householdService;
@@ -104,22 +100,6 @@ public class CategoryService {
         for (int i = 0; i < categoryIds.size(); i++) {
             byId.get(categoryIds.get(i)).updateSortOrder(i);
         }
-    }
-
-    @Transactional
-    public void setMonthlyTarget(Long userId, Long categoryId, int year, int month, BigDecimal amount) {
-        Category category = getOwnedCategory(userId, categoryId);
-        CategoryMonthlyTarget target = categoryMonthlyTargetRepository
-                .findByCategoryIdAndYearAndMonth(categoryId, year, month)
-                .orElseGet(() -> categoryMonthlyTargetRepository
-                        .save(new CategoryMonthlyTarget(category, year, month, amount)));
-        target.updateAmount(amount);
-    }
-
-    @Transactional
-    public void clearMonthlyTarget(Long userId, Long categoryId, int year, int month) {
-        getOwnedCategory(userId, categoryId);
-        categoryMonthlyTargetRepository.deleteByCategoryIdAndYearAndMonth(categoryId, year, month);
     }
 
     @Transactional

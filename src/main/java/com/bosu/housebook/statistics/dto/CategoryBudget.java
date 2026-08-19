@@ -10,6 +10,5 @@ public record CategoryBudget(
         String icon,
         TransactionType type,
         BigDecimal targetAmount,
-        BigDecimal spentAmount,
-        boolean monthOverride) {
+        BigDecimal spentAmount) {
 }

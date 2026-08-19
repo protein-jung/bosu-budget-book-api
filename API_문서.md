@@ -775,7 +775,7 @@ household 소유 거래 UPDATE (작성자 변경 없음)
 
 | 파라미터     | 타입            | 필수  | 설명                                         |
 | -------- | ------------- | --- | ------------------------------------------ |
-| provider | string        | O   | `SAMSUNG_CARD` / `GYEONGGI_LOCAL_CURRENCY` |
+| provider | string        | O   | `SAMSUNG_CARD` / `GYEONGGI_LOCAL_CURRENCY` / `COUPANG` / `KBANK` |
 | cardId   | long          | X   | 기존 카드 ID                                   |
 | cardName | string        | X   | 카드 이름 (없으면 생성)                             |
 | file     | MultipartFile | O   | 명세서 파일                                     |

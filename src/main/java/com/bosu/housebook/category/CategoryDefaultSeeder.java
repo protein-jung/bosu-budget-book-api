@@ -30,10 +30,6 @@ public class CategoryDefaultSeeder {
                     new Leaf("보험", "#495057", "🛡️"),
                     new Leaf("세금", "#e03131", "💰"),
                     new Leaf("주차비", "#7048e8", "🅿️"))),
-            new Group("보험", "#495057", "🛡️", List.of(
-                    new Leaf("수민", "#1971c2", "👤"),
-                    new Leaf("보영", "#e64980", "👤"),
-                    new Leaf("혜린", "#f08c00", "👤"))),
             new Group("수민", "#1971c2", "👛", List.of(
                     new Leaf("개인용돈", "#1971c2", "💵"),
                     new Leaf("계모임", "#7048e8", "🤝"))),
@@ -47,8 +43,13 @@ public class CategoryDefaultSeeder {
                     new Leaf("수민 IRP", "#1971c2", "📈"),
                     new Leaf("투자모으기", "#2f9e44", "📊"),
                     new Leaf("코인", "#f08c00", "🪙"))),
-            new Group("병원", "#e03131", "🏥", List.of(
-                    new Leaf("병원약", "#e03131", "💊"))),
+            new Group("의료", "#e03131", "🏥", List.of(
+                    new Leaf("병원비", "#e03131", "🏥"),
+                    new Leaf("약국", "#e03131", "💊"),
+                    new Leaf("영양제", "#e03131", "🌿"),
+                    new Leaf("수민보험", "#1971c2", "👤"),
+                    new Leaf("보영보험", "#e64980", "👤"),
+                    new Leaf("해린", "#f08c00", "👤"))),
             new Group("기타", "#495057", "📦", List.of(
                     new Leaf("카드 연회비", "#495057", "💳"),
                     new Leaf("경조사비", "#e64980", "🎁"),

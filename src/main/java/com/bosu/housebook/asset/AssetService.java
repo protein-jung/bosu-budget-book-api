@@ -65,7 +65,7 @@ public class AssetService {
                 request.cashInterestRate(), request.cashStartDate(), request.purchaseDate(), request.encarUrl(),
                 request.loanPrincipal(), request.loanStartMonth(), request.loanTermMonths(),
                 request.loanMonthlyPayment(), request.loanInterestRate(), request.loanRepaymentType(),
-                request.realEstateCategory(), request.monthlyRent());
+                request.realEstateCategory(), request.monthlyRent(), request.includeInStats());
         assetRepository.save(asset);
         return AssetResponse.from(asset);
     }
@@ -82,7 +82,7 @@ public class AssetService {
                 request.cashInterestRate(), request.cashStartDate(), request.purchaseDate(), request.encarUrl(),
                 request.loanPrincipal(), request.loanStartMonth(), request.loanTermMonths(),
                 request.loanMonthlyPayment(), request.loanInterestRate(), request.loanRepaymentType(),
-                request.realEstateCategory(), request.monthlyRent());
+                request.realEstateCategory(), request.monthlyRent(), request.includeInStats());
         return AssetResponse.from(asset);
     }
 
@@ -115,7 +115,9 @@ public class AssetService {
 
     public AssetSummaryResponse getSummary(Long userId) {
         Long householdId = householdService.getHouseholdIdForUser(userId);
-        List<Asset> assets = assetRepository.findByHouseholdIdOrderByIdAsc(householdId);
+        List<Asset> assets = assetRepository.findByHouseholdIdOrderByIdAsc(householdId).stream()
+                .filter(Asset::isIncludeInStats)
+                .toList();
 
         BigDecimal total = BigDecimal.ZERO;
         Map<AssetType, BigDecimal> byType = new LinkedHashMap<>();
@@ -144,7 +146,9 @@ public class AssetService {
 
     /** 스냅샷 배치용: 가계부의 자산 총액 + 타입별 합계만 계산한다(보관처별 집계는 필요 없음). */
     public HouseholdTotals computeHouseholdTotals(Long householdId) {
-        List<Asset> assets = assetRepository.findByHouseholdIdOrderByIdAsc(householdId);
+        List<Asset> assets = assetRepository.findByHouseholdIdOrderByIdAsc(householdId).stream()
+                .filter(Asset::isIncludeInStats)
+                .toList();
         BigDecimal total = BigDecimal.ZERO;
         Map<AssetType, BigDecimal> byType = new LinkedHashMap<>();
         for (Asset asset : assets) {

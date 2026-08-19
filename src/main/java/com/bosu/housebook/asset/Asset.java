@@ -159,6 +159,11 @@ public class Asset extends BaseTimeEntity {
     @Column(name = "loan_repayment_type")
     private LoanRepaymentType loanRepaymentType;
 
+    /** 포트폴리오 총자산/구성비율/추이 그래프 등 통계에 이 자산을 포함할지. 기본값 false(제외) —
+     * 자산 목록 등록 자체와는 별개로, 통계에 넣을지는 사용자가 자산별로 직접 고른다. */
+    @Column(name = "include_in_stats", nullable = false)
+    private boolean includeInStats;
+
     public Asset(Household household, AssetType type, String name, String custodian, String symbol,
             BigDecimal quantity, BigDecimal averagePrice, BigDecimal manualValue, String memo, String address,
             String dong, String ho, String lawdCd, String complexName, String regionDongName,
@@ -166,7 +171,7 @@ public class Asset extends BaseTimeEntity {
             BigDecimal cashInterestRate, LocalDate cashStartDate, LocalDate purchaseDate, String encarUrl,
             BigDecimal loanPrincipal, LocalDate loanStartMonth, Integer loanTermMonths,
             BigDecimal loanMonthlyPayment, BigDecimal loanInterestRate, LoanRepaymentType loanRepaymentType,
-            RealEstateCategory realEstateCategory, BigDecimal monthlyRent) {
+            RealEstateCategory realEstateCategory, BigDecimal monthlyRent, boolean includeInStats) {
         this.household = household;
         this.type = type;
         this.name = name;
@@ -205,6 +210,7 @@ public class Asset extends BaseTimeEntity {
         this.loanRepaymentType = isLoan
                 ? (loanRepaymentType != null ? loanRepaymentType : LoanRepaymentType.EQUAL_INSTALLMENT)
                 : null;
+        this.includeInStats = includeInStats;
     }
 
     public void update(AssetType type, String name, String custodian, String symbol, BigDecimal quantity,
@@ -213,7 +219,8 @@ public class Asset extends BaseTimeEntity {
             CashCategory cashCategory, LocalDate maturityDate, BigDecimal cashInterestRate, LocalDate cashStartDate,
             LocalDate purchaseDate, String encarUrl, BigDecimal loanPrincipal, LocalDate loanStartMonth,
             Integer loanTermMonths, BigDecimal loanMonthlyPayment, BigDecimal loanInterestRate,
-            LoanRepaymentType loanRepaymentType, RealEstateCategory realEstateCategory, BigDecimal monthlyRent) {
+            LoanRepaymentType loanRepaymentType, RealEstateCategory realEstateCategory, BigDecimal monthlyRent,
+            boolean includeInStats) {
         this.type = type;
         this.name = name;
         this.custodian = custodian;
@@ -250,6 +257,7 @@ public class Asset extends BaseTimeEntity {
         this.loanRepaymentType = isLoan
                 ? (loanRepaymentType != null ? loanRepaymentType : LoanRepaymentType.EQUAL_INSTALLMENT)
                 : null;
+        this.includeInStats = includeInStats;
     }
 
     public void updatePrice(BigDecimal price, LocalDateTime updatedAt) {

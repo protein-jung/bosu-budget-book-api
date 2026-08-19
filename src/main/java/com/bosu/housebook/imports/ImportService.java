@@ -212,6 +212,7 @@ public class ImportService {
             case SAMSUNG_CARD -> "삼성카드";
             case GYEONGGI_LOCAL_CURRENCY -> "경기지역화폐";
             case COUPANG -> "쿠팡";
+            case KBANK -> "케이뱅크";
         };
     }
 

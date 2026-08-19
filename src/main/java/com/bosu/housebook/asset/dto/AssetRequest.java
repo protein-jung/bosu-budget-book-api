@@ -51,5 +51,6 @@ public record AssetRequest(
         BigDecimal loanInterestRate,
         LoanRepaymentType loanRepaymentType,
         RealEstateCategory realEstateCategory,
-        BigDecimal monthlyRent) {
+        BigDecimal monthlyRent,
+        boolean includeInStats) {
 }
