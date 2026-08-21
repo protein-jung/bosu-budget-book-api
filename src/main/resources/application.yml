@@ -2,7 +2,7 @@ spring:
   application:
     name: housebook
   datasource:
-    url: jdbc:postgresql://localhost:5432/${DB_NAME:housebook}
+    url: jdbc:postgresql://${DB_HOST:100.99.6.52}:5432/${DB_NAME:housebook}
     username: ${DB_USER:sumin}
     password: ${DB_PASSWORD:}
   jpa:
