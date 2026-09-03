@@ -35,6 +35,8 @@ server:
   port: ${SERVER_PORT:8080}
 
 app:
+  # 로컬/상용 구분용. 상용 배포 시 APP_ENV=prod로 설정한다 (deploy/docker-compose.prod.yml 참고).
+  env: ${APP_ENV:local}
   jwt:
     secret: ${JWT_SECRET:local-dev-only-secret-key-change-in-production-please-0123456789}
     expiration-ms: ${JWT_EXPIRATION_MS:604800000} # 7 days
@@ -44,6 +46,9 @@ app:
     api-key: ${MOLIT_API_KEY:}
   kakao:
     api-key: ${KAKAO_API_KEY:}
+  slack:
+    # 비어있으면 알림을 보내지 않는다. 실제 웹훅 URL은 로컬 환경변수/deploy/.env에서만 채운다.
+    error-webhook-url: ${SLACK_ERROR_WEBHOOK_URL:}
 
 admin:
   username: ${ADMIN_USERNAME:admin}
