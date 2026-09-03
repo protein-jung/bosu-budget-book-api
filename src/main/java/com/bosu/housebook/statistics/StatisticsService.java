@@ -4,16 +4,21 @@ import com.bosu.housebook.category.Category;
 import com.bosu.housebook.category.CategoryRepository;
 import com.bosu.housebook.common.ApiException;
 import com.bosu.housebook.common.TransactionType;
+import com.bosu.housebook.household.Household;
+import com.bosu.housebook.household.HouseholdRepository;
 import com.bosu.housebook.household.HouseholdService;
 import com.bosu.housebook.statistics.dto.CardStat;
 import com.bosu.housebook.statistics.dto.CategoryBudget;
 import com.bosu.housebook.statistics.dto.CategoryStat;
 import com.bosu.housebook.statistics.dto.MemberStat;
+import com.bosu.housebook.statistics.dto.MonthCommentResponse;
 import com.bosu.housebook.statistics.dto.MonthlySummaryResponse;
 import com.bosu.housebook.statistics.dto.MonthlyTrendPoint;
 import com.bosu.housebook.statistics.dto.RangeSummaryResponse;
 import com.bosu.housebook.transaction.Transaction;
 import com.bosu.housebook.transaction.TransactionRepository;
+import com.bosu.housebook.user.User;
+import com.bosu.housebook.user.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -37,12 +42,19 @@ public class StatisticsService {
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final HouseholdService householdService;
+    private final HouseholdRepository householdRepository;
+    private final UserRepository userRepository;
+    private final MonthCommentRepository monthCommentRepository;
 
     public StatisticsService(TransactionRepository transactionRepository, CategoryRepository categoryRepository,
-            HouseholdService householdService) {
+            HouseholdService householdService, HouseholdRepository householdRepository,
+            UserRepository userRepository, MonthCommentRepository monthCommentRepository) {
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
         this.householdService = householdService;
+        this.householdRepository = householdRepository;
+        this.userRepository = userRepository;
+        this.monthCommentRepository = monthCommentRepository;
     }
 
     public MonthlySummaryResponse getMonthlySummary(Long userId, int year, int month) {
@@ -83,6 +95,37 @@ public class StatisticsService {
             from = to.minusMonths(MAX_RANGE_MONTHS - 1);
         }
         return buildRangeSummary(householdId, from, to);
+    }
+
+    public List<MonthCommentResponse> getComments(Long userId, int year, int month) {
+        Long householdId = householdService.getHouseholdIdForUser(userId);
+        return monthCommentRepository.findByHouseholdIdAndYearAndMonthOrderByCreatedAtAsc(householdId, year, month)
+                .stream()
+                .map(MonthCommentResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public MonthCommentResponse addComment(Long userId, int year, int month, String body) {
+        Long householdId = householdService.getHouseholdIdForUser(userId);
+        Household household = householdRepository.getReferenceById(householdId);
+        User user = userRepository.findById(userId).orElseThrow(() -> ApiException.notFound("사용자를 찾을 수 없습니다."));
+        MonthComment saved = monthCommentRepository.save(new MonthComment(household, user, year, month, body.trim()));
+        return MonthCommentResponse.from(saved);
+    }
+
+    @Transactional
+    public void deleteComment(Long userId, Long commentId) {
+        Long householdId = householdService.getHouseholdIdForUser(userId);
+        MonthComment comment = monthCommentRepository.findById(commentId)
+                .orElseThrow(() -> ApiException.notFound("코멘트를 찾을 수 없습니다."));
+        if (!comment.getHousehold().getId().equals(householdId)) {
+            throw ApiException.notFound("코멘트를 찾을 수 없습니다.");
+        }
+        if (comment.getUser() == null || !comment.getUser().getId().equals(userId)) {
+            throw ApiException.forbidden("본인이 남긴 코멘트만 지울 수 있습니다.");
+        }
+        monthCommentRepository.delete(comment);
     }
 
     private RangeSummaryResponse buildRangeSummary(Long householdId, YearMonth from, YearMonth to) {
