@@ -13,5 +13,6 @@ public record TransactionRequest(
         @NotNull LocalDate transactionDate,
         @NotNull Long categoryId,
         Long cardId,
-        @Size(max = 500) String memo) {
+        @Size(max = 500) String memo,
+        @Size(max = 1000) String note) {
 }

@@ -18,7 +18,8 @@ public record TransactionResponse(
         String cardName,
         Long userId,
         String userName,
-        String memo) {
+        String memo,
+        String note) {
 
     public static TransactionResponse from(Transaction transaction) {
         var card = transaction.getCard();
@@ -36,6 +37,7 @@ public record TransactionResponse(
                 card != null ? card.getName() : null,
                 user != null ? user.getId() : null,
                 user != null ? user.getName() : "탈퇴한 사용자",
-                transaction.getMemo());
+                transaction.getMemo(),
+                transaction.getNote());
     }
 }

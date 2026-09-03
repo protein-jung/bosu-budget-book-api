@@ -61,6 +61,9 @@ public class Transaction extends BaseTimeEntity {
 
     private String memo;
 
+    // 제목(memo)과 별개로 남기는 자유 메모. 예: "다음 달엔 이 카드 대신 다른 카드로".
+    private String note;
+
     // 엑셀 등에서 가져온 월별 합계처럼 정확한 날짜가 없는 과거 데이터에 붙는 표시. 통계(월별
     // 합계)에는 그대로 포함되지만 캘린더 일별 목록에서는 제외된다(TransactionRepository의
     // ...AndIsBackfillFalse... 조회 참고). 새로 만드는 거래는 항상 false.
@@ -69,6 +72,11 @@ public class Transaction extends BaseTimeEntity {
 
     public Transaction(Household household, TransactionType type, BigDecimal amount, LocalDate transactionDate,
             Category category, Card card, User user, String memo) {
+        this(household, type, amount, transactionDate, category, card, user, memo, null);
+    }
+
+    public Transaction(Household household, TransactionType type, BigDecimal amount, LocalDate transactionDate,
+            Category category, Card card, User user, String memo, String note) {
         this.household = household;
         this.type = type;
         this.amount = amount;
@@ -77,15 +85,17 @@ public class Transaction extends BaseTimeEntity {
         this.card = card;
         this.user = user;
         this.memo = memo;
+        this.note = note;
     }
 
     public void update(TransactionType type, BigDecimal amount, LocalDate transactionDate, Category category,
-            Card card, String memo) {
+            Card card, String memo, String note) {
         this.type = type;
         this.amount = amount;
         this.transactionDate = transactionDate;
         this.category = category;
         this.card = card;
         this.memo = memo;
+        this.note = note;
     }
 }

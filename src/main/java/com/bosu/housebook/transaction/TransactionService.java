@@ -78,7 +78,7 @@ public class TransactionService {
         User user = userRepository.getReferenceById(userId);
 
         Transaction transaction = new Transaction(household, request.type(), request.amount(),
-                request.transactionDate(), category, card, user, request.memo());
+                request.transactionDate(), category, card, user, request.memo(), request.note());
         transactionRepository.save(transaction);
         notifyOtherMembers(householdId, userId, user, request, category);
         return TransactionResponse.from(transaction);
@@ -110,7 +110,7 @@ public class TransactionService {
         Card card = getOwnedCard(householdId, request.cardId());
 
         transaction.update(request.type(), request.amount(), request.transactionDate(), category, card,
-                request.memo());
+                request.memo(), request.note());
         return TransactionResponse.from(transaction);
     }
 
