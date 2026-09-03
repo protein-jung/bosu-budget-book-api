@@ -1,0 +1,23 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/housebook/backend
+            git fetch origin main
+            git reset --hard origin/main
+            cd /opt/housebook/deploy
+            docker compose -f docker-compose.prod.yml up -d --build
