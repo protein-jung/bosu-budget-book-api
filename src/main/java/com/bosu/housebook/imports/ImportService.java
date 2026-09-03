@@ -99,9 +99,9 @@ public class ImportService {
         Card card = resolveCard(household, cardId, cardName, provider);
         ExistingCounts existingCounts = countExistingByKey(householdId, card.getId(), parsed);
 
-        Function<String, Optional<MerchantCategoryClassifier.CategorySuggestion>> classify = provider == ImportProvider.COUPANG
-                ? categoryClassifier::classifyProduct
-                : categoryClassifier::classify;
+        Function<String, Optional<Category>> classify = provider == ImportProvider.COUPANG
+                ? name -> categoryClassifier.classifyProduct(name, household)
+                : name -> categoryClassifier.classify(name, household);
 
         Map<String, Category> categoryCache = new LinkedHashMap<>();
         Map<Long, BreakdownAccumulator> breakdown = new LinkedHashMap<>();
@@ -207,36 +207,14 @@ public class ImportService {
     }
 
     /**
-     * 분류기가 제안한 카테고리는 이 가계부에 이미 있는 이름일 때만 사용한다. 제안된 이름이 이
-     * 가계부에 없으면(=아직 안 쓰는 카테고리) 새로 만들지 않고 미분류로 저장한다.
+     * 분류기가 제안한 카테고리는 거래의 수입/지출 유형과 같을 때만 쓴다(규칙은 지출 카테고리를
+     * 가리키도록 만들어지지만, 혹시 안 맞으면 미분류로 안전하게 남긴다).
      */
     private Category resolveCategory(Household household, String merchantName, TransactionType type,
-            Function<String, Optional<MerchantCategoryClassifier.CategorySuggestion>> classify,
-            Map<String, Category> cache) {
-        Optional<String> suggestedName = classify.apply(merchantName)
-                .map(MerchantCategoryClassifier.CategorySuggestion::categoryName);
-        if (suggestedName.isPresent()) {
-            Category existing = findExistingCategory(household, suggestedName.get(), type, cache);
-            if (existing != null) {
-                return existing;
-            }
-        }
-        return uncategorized(household, type, cache);
-    }
-
-    private Category findExistingCategory(Household household, String name, TransactionType type,
-            Map<String, Category> cache) {
-        String cacheKey = type + ":" + name;
-        Category cached = cache.get(cacheKey);
-        if (cached != null) {
-            return cached;
-        }
-        Optional<Category> found = categoryRepository
-                .findByHouseholdIdAndNameAndType(household.getId(), name, type)
-                .stream()
-                .findFirst();
-        found.ifPresent(category -> cache.put(cacheKey, category));
-        return found.orElse(null);
+            Function<String, Optional<Category>> classify, Map<String, Category> cache) {
+        return classify.apply(merchantName)
+                .filter(category -> category.getType() == type)
+                .orElseGet(() -> uncategorized(household, type, cache));
     }
 
     private Category uncategorized(Household household, TransactionType type, Map<String, Category> cache) {

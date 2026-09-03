@@ -52,7 +52,7 @@ public class AssetPriceService {
                     continue;
                 }
                 Optional<RealEstateTradeResponse> latest = realEstateTradeService
-                        .findLatestTrade(asset.getLawdCd(), asset.getComplexName());
+                        .findLatestTrade(asset.getLawdCd(), asset.getComplexName(), asset.getDong(), asset.getHo());
                 if (latest.isEmpty()) {
                     failed++;
                     continue;

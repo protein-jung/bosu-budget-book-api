@@ -25,20 +25,21 @@ public class JwtTokenProvider {
         this.expirationMs = jwtProperties.expirationMs();
     }
 
-    public String generateToken(Long userId) {
-        return buildToken(String.valueOf(userId), ROLE_USER);
+    public String generateToken(Long userId, boolean isAdminUser) {
+        return buildToken(String.valueOf(userId), ROLE_USER, isAdminUser);
     }
 
     public String generateAdminToken() {
-        return buildToken(ADMIN_SUBJECT, ROLE_ADMIN);
+        return buildToken(ADMIN_SUBJECT, ROLE_ADMIN, false);
     }
 
-    private String buildToken(String subject, String role) {
+    private String buildToken(String subject, String role, boolean isAdminUser) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
         return Jwts.builder()
                 .subject(subject)
                 .claim("role", role)
+                .claim("admin", isAdminUser)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(key)
@@ -52,6 +53,12 @@ public class JwtTokenProvider {
 
     public boolean isAdmin(String token) {
         return ROLE_ADMIN.equals(parseClaims(token).get("role", String.class));
+    }
+
+    /** 일반 사용자 토큰(role=USER)인데, 그 계정이 관리자로 지정된 이메일이라 admin.user-email과
+     * 일치해서 발급 시점에 admin 클레임이 붙은 경우. */
+    public boolean isUserAdmin(String token) {
+        return Boolean.TRUE.equals(parseClaims(token).get("admin", Boolean.class));
     }
 
     public boolean isValid(String token) {

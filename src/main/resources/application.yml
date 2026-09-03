@@ -19,6 +19,17 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   port: ${SERVER_PORT:8080}
@@ -39,6 +50,8 @@ admin:
   # 개발용 기본 비밀번호는 "AdminDev1234!" (BCrypt 해시). 운영 배포 시 반드시
   # ADMIN_USERNAME/ADMIN_PASSWORD_HASH 환경변수로 재설정할 것.
   password-hash: ${ADMIN_PASSWORD_HASH:$2a$10$2JCRJxJTshDMXxaiC2VSmOxRkUja13Wy/8P6VhRd1xlW1YSMuWiMS}
+  # 이 이메일로 일반 로그인하면 그 계정도 관리자 화면에 들어갈 수 있다.
+  user-email: ${ADMIN_USER_EMAIL:doslxk@gmail.com}
 
 springdoc:
   swagger-ui:

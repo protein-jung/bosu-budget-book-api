@@ -69,8 +69,15 @@ public class RealEstateTradeService {
      * 그중 가장 최근 거래를 돌려준다. API 키가 없거나 조회에 실패하면(월별로 개별 실패 가능)
      * 예외를 던지지 않고 빈 값을 돌려줘서, 여러 자산을 한 번에 갱신할 때 한 건의 실패가
      * 전체를 막지 않게 한다.
+     * <p>
+     * 같은 단지라도 평형(전용면적)이 다른 동/호가 섞여 있으면 엉뚱한 평형 가격이 들어갈 수 있어서,
+     * {@code dong}(건물동)·{@code ho}(호수)로 후보를 좁힌다. 국토교통부 실거래가는 호수는 공개하지
+     * 않고 층수만 알려주므로, 호수의 "마지막 두 자리를 뺀 나머지"를 층으로 추정해서 대조한다(국내
+     * 아파트 호수 표기 관례 — 정확한 매칭이 아니라 근사치). 이 정보가 없는 옛날 거래 데이터나,
+     * 애초에 asset에 동/호가 없는 경우는 걸러내지 않고 그대로 둔다({@link #narrowByUnit} 참고).
      */
-    public Optional<RealEstateTradeResponse> findLatestTrade(String lawdCd, String complexName) {
+    public Optional<RealEstateTradeResponse> findLatestTrade(String lawdCd, String complexName, String dong,
+            String ho) {
         if (molitProperties.apiKey() == null || molitProperties.apiKey().isBlank()) {
             return Optional.empty();
         }
@@ -82,8 +89,9 @@ public class RealEstateTradeService {
             String dealYm = cursor.minusMonths(i).format(DateTimeFormatter.ofPattern("yyyyMM"));
             List<RealEstateTradeResponse> trades;
             try {
-                trades = filterByComplex(tradeClient.fetchTrades(molitProperties.apiKey(), lawdCd, dealYm),
-                        complexName);
+                trades = narrowByUnit(
+                        filterByComplex(tradeClient.fetchTrades(molitProperties.apiKey(), lawdCd, dealYm), complexName),
+                        dong, ho);
             } catch (ApiException e) {
                 continue;
             }
@@ -107,5 +115,52 @@ public class RealEstateTradeService {
         return trades.stream()
                 .filter(trade -> trade.aptName() != null && trade.aptName().replaceAll("\\s+", "").contains(needle))
                 .toList();
+    }
+
+    /** {@code frontend/src/features/realEstate/RealEstateTradeLookup.tsx}의 좁히기 로직과 동일하게
+     * 맞춘다 — 데이터가 아예 없는 거래는 걸러내지 않고 남겨서, 옛날 거래만 있어 동/층 정보가
+     * 비어있는 경우까지 전부 제외되는 일이 없게 한다. */
+    private List<RealEstateTradeResponse> narrowByUnit(List<RealEstateTradeResponse> trades, String dong, String ho) {
+        List<RealEstateTradeResponse> scoped = trades;
+
+        String dongDigits = digitsOnly(dong);
+        boolean hasBuildingDongData = scoped.stream()
+                .anyMatch(trade -> trade.buildingDong() != null && !trade.buildingDong().isBlank());
+        if (dongDigits != null && hasBuildingDongData) {
+            scoped = scoped.stream()
+                    .filter(trade -> {
+                        String raw = digitsOnly(trade.buildingDong());
+                        return raw == null || raw.equals(dongDigits);
+                    })
+                    .toList();
+        }
+
+        Integer floorGuess = guessFloorFromUnitNo(ho);
+        if (floorGuess != null) {
+            scoped = scoped.stream()
+                    .filter(trade -> trade.floor() == null || trade.floor().equals(floorGuess))
+                    .toList();
+        }
+        return scoped;
+    }
+
+    private Integer guessFloorFromUnitNo(String unitNo) {
+        if (unitNo == null || unitNo.length() < 3) {
+            return null;
+        }
+        try {
+            int guess = Integer.parseInt(unitNo.substring(0, unitNo.length() - 2));
+            return guess > 0 ? guess : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String digitsOnly(String value) {
+        if (value == null) {
+            return null;
+        }
+        String digits = value.replaceAll("[^0-9]", "");
+        return digits.isBlank() ? null : digits;
     }
 }

@@ -38,7 +38,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 } else {
                     Long userId = jwtTokenProvider.getUserId(token);
-                    var authentication = new UsernamePasswordAuthenticationToken(userId, null, List.of());
+                    // admin.user-email로 지정된 계정의 토큰은 일반 사용자 인증(principal=userId)을
+                    // 유지하면서 ROLE_ADMIN 권한도 함께 부여한다 — 이 계정으로 /api/admin/** 관리자
+                    // API와 일반 API를 같은 토큰으로 모두 쓸 수 있게 하기 위함.
+                    var authorities = jwtTokenProvider.isUserAdmin(token)
+                            ? List.of(new SimpleGrantedAuthority("ROLE_" + JwtTokenProvider.ROLE_ADMIN))
+                            : List.<SimpleGrantedAuthority>of();
+                    var authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }

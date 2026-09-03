@@ -6,6 +6,7 @@ import com.bosu.housebook.household.dto.HouseholdCreateRequest;
 import com.bosu.housebook.household.dto.HouseholdResponse;
 import com.bosu.housebook.household.dto.JoinHouseholdRequest;
 import com.bosu.housebook.household.dto.MemberResponse;
+import com.bosu.housebook.merchantrule.MerchantRuleDefaultSeeder;
 import com.bosu.housebook.user.User;
 import com.bosu.housebook.user.UserRepository;
 import java.security.SecureRandom;
@@ -25,13 +26,16 @@ public class HouseholdService {
     private final HouseholdMemberRepository householdMemberRepository;
     private final UserRepository userRepository;
     private final CategoryDefaultSeeder categoryDefaultSeeder;
+    private final MerchantRuleDefaultSeeder merchantRuleDefaultSeeder;
 
     public HouseholdService(HouseholdRepository householdRepository, HouseholdMemberRepository householdMemberRepository,
-            UserRepository userRepository, CategoryDefaultSeeder categoryDefaultSeeder) {
+            UserRepository userRepository, CategoryDefaultSeeder categoryDefaultSeeder,
+            MerchantRuleDefaultSeeder merchantRuleDefaultSeeder) {
         this.householdRepository = householdRepository;
         this.householdMemberRepository = householdMemberRepository;
         this.userRepository = userRepository;
         this.categoryDefaultSeeder = categoryDefaultSeeder;
+        this.merchantRuleDefaultSeeder = merchantRuleDefaultSeeder;
     }
 
     /** 다른 도메인 서비스가 현재 로그인한 유저의 household id를 조회할 때 사용. */
@@ -51,6 +55,7 @@ public class HouseholdService {
         householdRepository.save(household);
         householdMemberRepository.save(new HouseholdMember(household, user, HouseholdRole.OWNER));
         categoryDefaultSeeder.seed(household);
+        merchantRuleDefaultSeeder.seed(household);
         return toResponse(household);
     }
 

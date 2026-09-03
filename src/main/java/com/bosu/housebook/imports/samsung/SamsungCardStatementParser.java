@@ -10,8 +10,11 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.apache.poi.ss.usermodel.Row;
@@ -21,9 +24,14 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * 삼성카드 명세서 파서. 두 가지 내보내기 포맷을 모두 지원한다.
+ * 삼성카드 명세서 파서. 세 가지 내보내기 포맷을 모두 지원한다.
  *
  * <ul>
+ *   <li>이용내역조회 포맷("일시불+할부_카드이용내역조회"): "■ 국내이용내역"(해외이용이 있으면
+ *       "■ 해외이용내역"도) 시트에 승인 단위 원시 내역이 그대로 들어있다. 날짜는 "2026.08.31",
+ *       금액은 숫자 셀. 취소된 거래는 원거래 행과 부호가 반대인 취소 행이 같은 승인번호로 짝을
+ *       이뤄 함께 들어있어서, 승인번호별로 금액을 합산해 0 이하로 상쇄되는 건(부분취소 포함)은
+ *       뺀다.</li>
  *   <li>신규 포맷(2026.08~): "일시불"/"해외이용"/"청구요약" 시트로 분리, 날짜는
  *       "20260702"(yyyyMMdd), 금액은 "40,000" 같은 콤마 포함 문자열. 해외이용 거래도
  *       원화 환산된 최종 결제금액으로 "일시불" 시트에 이미 포함돼 있고, "해외이용" 시트는
@@ -36,6 +44,14 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class SamsungCardStatementParser implements StatementParser {
+
+    private static final Pattern USAGE_DETAIL_DATE_PATTERN = Pattern.compile("\\d{4}\\.\\d{2}\\.\\d{2}");
+    private static final String USAGE_DETAIL_HEADER_DATE = "승인일자";
+    private static final String USAGE_DETAIL_HEADER_MERCHANT = "가맹점명";
+    private static final String USAGE_DETAIL_HEADER_AMOUNT = "승인금액(원)";
+    private static final String USAGE_DETAIL_HEADER_APPROVAL_NO = "승인번호";
+    private static final Set<String> USAGE_DETAIL_REQUIRED_HEADERS = Set.of(USAGE_DETAIL_HEADER_DATE,
+            USAGE_DETAIL_HEADER_MERCHANT, USAGE_DETAIL_HEADER_AMOUNT, USAGE_DETAIL_HEADER_APPROVAL_NO);
 
     private static final String NEW_FORMAT_SHEET_DOMESTIC = "일시불";
     private static final Pattern NEW_DATE_PATTERN = Pattern.compile("\\d{8}");
@@ -57,6 +73,14 @@ public class SamsungCardStatementParser implements StatementParser {
     @Override
     public List<ParsedTransaction> parse(InputStream inputStream) {
         try (Workbook workbook = WorkbookFactory.create(inputStream)) {
+            List<Sheet> usageDetailSheets = findUsageDetailSheets(workbook);
+            if (!usageDetailSheets.isEmpty()) {
+                List<ParsedTransaction> transactions = new ArrayList<>();
+                for (Sheet sheet : usageDetailSheets) {
+                    transactions.addAll(parseUsageDetailFormat(sheet));
+                }
+                return transactions;
+            }
             if (workbook.getSheet(NEW_FORMAT_SHEET_DOMESTIC) != null) {
                 return parseNewFormat(workbook);
             }
@@ -64,6 +88,66 @@ public class SamsungCardStatementParser implements StatementParser {
         } catch (IOException e) {
             throw ApiException.badRequest("엑셀 파일을 읽을 수 없습니다.");
         }
+    }
+
+    private List<Sheet> findUsageDetailSheets(Workbook workbook) {
+        List<Sheet> sheets = new ArrayList<>();
+        for (Sheet sheet : workbook) {
+            if (ExcelParsingUtils.findHeaderRowOptional(sheet, USAGE_DETAIL_REQUIRED_HEADERS).isPresent()) {
+                sheets.add(sheet);
+            }
+        }
+        return sheets;
+    }
+
+    private List<ParsedTransaction> parseUsageDetailFormat(Sheet sheet) {
+        ExcelParsingUtils.HeaderRow header = ExcelParsingUtils.findHeaderRow(sheet, USAGE_DETAIL_REQUIRED_HEADERS);
+        int dateCol = header.column(USAGE_DETAIL_HEADER_DATE);
+        int merchantCol = header.column(USAGE_DETAIL_HEADER_MERCHANT);
+        int amountCol = header.column(USAGE_DETAIL_HEADER_AMOUNT);
+        int approvalNoCol = header.column(USAGE_DETAIL_HEADER_APPROVAL_NO);
+
+        record FirstSeen(LocalDate date, String merchant) {
+        }
+        Map<String, FirstSeen> firstSeenByApprovalNo = new LinkedHashMap<>();
+        Map<String, BigDecimal> netAmountByApprovalNo = new HashMap<>();
+
+        for (int r = header.rowIndex() + 1; r <= sheet.getLastRowNum(); r++) {
+            Row row = sheet.getRow(r);
+            if (row == null) {
+                continue;
+            }
+            String dateText = ExcelParsingUtils.stringValue(row.getCell(dateCol)).trim();
+            if (dateText.isEmpty()) {
+                continue;
+            }
+            if (!USAGE_DETAIL_DATE_PATTERN.matcher(dateText).matches()) {
+                break;
+            }
+
+            String merchant = ExcelParsingUtils.stringValue(row.getCell(merchantCol)).trim();
+            BigDecimal amount = ExcelParsingUtils.numericValue(row.getCell(amountCol));
+            String approvalNo = ExcelParsingUtils.stringValue(row.getCell(approvalNoCol)).trim();
+            if (merchant.isEmpty() || amount == null || approvalNo.isEmpty()) {
+                continue;
+            }
+
+            String[] parts = dateText.split("\\.");
+            LocalDate date = LocalDate.of(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]),
+                    Integer.parseInt(parts[2]));
+            firstSeenByApprovalNo.putIfAbsent(approvalNo, new FirstSeen(date, merchant));
+            netAmountByApprovalNo.merge(approvalNo, amount, BigDecimal::add);
+        }
+
+        List<ParsedTransaction> transactions = new ArrayList<>();
+        for (Map.Entry<String, FirstSeen> entry : firstSeenByApprovalNo.entrySet()) {
+            BigDecimal netAmount = netAmountByApprovalNo.get(entry.getKey());
+            if (netAmount.signum() <= 0) {
+                continue;
+            }
+            transactions.add(new ParsedTransaction(entry.getValue().date(), entry.getValue().merchant(), netAmount));
+        }
+        return transactions;
     }
 
     private List<ParsedTransaction> parseNewFormat(Workbook workbook) {

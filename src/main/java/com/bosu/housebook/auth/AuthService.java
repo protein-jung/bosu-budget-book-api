@@ -4,6 +4,7 @@ import com.bosu.housebook.auth.dto.LoginRequest;
 import com.bosu.housebook.auth.dto.SignupRequest;
 import com.bosu.housebook.auth.dto.TokenResponse;
 import com.bosu.housebook.common.ApiException;
+import com.bosu.housebook.config.AdminProperties;
 import com.bosu.housebook.user.User;
 import com.bosu.housebook.user.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,12 +18,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final AdminProperties adminProperties;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-            JwtTokenProvider jwtTokenProvider) {
+            JwtTokenProvider jwtTokenProvider, AdminProperties adminProperties) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.adminProperties = adminProperties;
     }
 
     @Transactional
@@ -49,7 +52,13 @@ public class AuthService {
     }
 
     private TokenResponse toTokenResponse(User user) {
-        String token = jwtTokenProvider.generateToken(user.getId());
-        return new TokenResponse(token, user.getId(), user.getEmail(), user.getName(), user.getBirthDate());
+        boolean isAdmin = isAdminEmail(user.getEmail());
+        String token = jwtTokenProvider.generateToken(user.getId(), isAdmin);
+        return new TokenResponse(token, user.getId(), user.getEmail(), user.getName(), user.getBirthDate(), isAdmin);
+    }
+
+    private boolean isAdminEmail(String email) {
+        String adminEmail = adminProperties.userEmail();
+        return adminEmail != null && !adminEmail.isBlank() && adminEmail.equalsIgnoreCase(email);
     }
 }
