@@ -1,7 +1,5 @@
 package com.bosu.housebook.auth;
 
-import com.bosu.housebook.common.ErrorResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,12 +19,14 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private static final Set<String> LIMITED_PATHS = Set.of(
             "/api/auth/login", "/api/auth/signup", "/api/auth/forgot-password", "/api/auth/reset-password");
 
-    private final AuthRateLimiter rateLimiter;
-    private final ObjectMapper objectMapper;
+    // 메시지가 고정 문자열이라 별도 JSON 라이브러리 없이 직접 만든다 — Jackson 2/3 어느 쪽 ObjectMapper 빈이
+    // 등록돼 있는지에 의존하지 않기 위함.
+    private static final String TOO_MANY_REQUESTS_BODY = "{\"message\":\"시도 횟수가 많습니다. 잠시 후 다시 시도해주세요.\"}";
 
-    public AuthRateLimitFilter(AuthRateLimiter rateLimiter, ObjectMapper objectMapper) {
+    private final AuthRateLimiter rateLimiter;
+
+    public AuthRateLimitFilter(AuthRateLimiter rateLimiter) {
         this.rateLimiter = rateLimiter;
-        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -35,8 +35,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         if (LIMITED_PATHS.contains(request.getRequestURI()) && !rateLimiter.tryConsume(clientIp(request))) {
             response.setStatus(429);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter()
-                    .write(objectMapper.writeValueAsString(new ErrorResponse("시도 횟수가 많습니다. 잠시 후 다시 시도해주세요.")));
+            response.getWriter().write(TOO_MANY_REQUESTS_BODY);
             return;
         }
         filterChain.doFilter(request, response);

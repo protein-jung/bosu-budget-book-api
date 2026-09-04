@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -28,6 +29,13 @@ public class GlobalExceptionHandler {
             slackErrorNotifier.notify(request, e);
         }
         return ResponseEntity.status(e.getStatus()).body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException e) {
+        // Swagger 비활성화, 봇 스캔 등으로 존재하지 않는 경로가 요청되는 경우 — 그냥 404다.
+        // 5xx로 취급해 슬랙 알림을 보내면 안 된다.
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("요청한 리소스를 찾을 수 없습니다."));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
