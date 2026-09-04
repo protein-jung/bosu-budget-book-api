@@ -42,6 +42,8 @@ app:
     expiration-ms: ${JWT_EXPIRATION_MS:604800000} # 7 days
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8081,http://localhost:19006}
+  # 비밀번호 재설정 메일에 넣는 링크의 기준 도메인.
+  frontend-url: ${FRONTEND_URL:http://localhost:8081}
   molit:
     api-key: ${MOLIT_API_KEY:}
   kakao:
@@ -59,5 +61,8 @@ admin:
   user-email: ${ADMIN_USER_EMAIL:doslxk@gmail.com}
 
 springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
   swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
     path: /swagger-ui.html

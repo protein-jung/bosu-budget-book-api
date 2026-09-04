@@ -7,6 +7,8 @@ import com.bosu.housebook.common.ApiException;
 import com.bosu.housebook.config.AdminProperties;
 import com.bosu.housebook.user.User;
 import com.bosu.housebook.user.UserRepository;
+import java.time.LocalDate;
+import java.time.Period;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class AuthService {
+
+    private static final int MIN_SIGNUP_AGE = 14;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -32,6 +36,9 @@ public class AuthService {
     public TokenResponse signup(SignupRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw ApiException.conflict("이미 가입된 이메일입니다.");
+        }
+        if (Period.between(request.birthDate(), LocalDate.now()).getYears() < MIN_SIGNUP_AGE) {
+            throw ApiException.badRequest("만 14세 미만은 가입할 수 없습니다.");
         }
         User user = new User(request.email(), passwordEncoder.encode(request.password()), request.name(),
                 request.birthDate());
