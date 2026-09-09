@@ -1,6 +1,8 @@
 package com.bosu.housebook.transaction;
 
 import com.bosu.housebook.auth.CurrentUserId;
+import com.bosu.housebook.transaction.dto.TransactionCommentRequest;
+import com.bosu.housebook.transaction.dto.TransactionCommentResponse;
 import com.bosu.housebook.transaction.dto.TransactionRequest;
 import com.bosu.housebook.transaction.dto.TransactionResponse;
 import jakarta.validation.Valid;
@@ -48,6 +50,26 @@ public class TransactionController {
     @DeleteMapping("/{transactionId}")
     public ResponseEntity<Void> delete(@CurrentUserId Long userId, @PathVariable Long transactionId) {
         transactionService.delete(userId, transactionId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{transactionId}/comments")
+    public List<TransactionCommentResponse> getComments(@CurrentUserId Long userId,
+            @PathVariable Long transactionId) {
+        return transactionService.getComments(userId, transactionId);
+    }
+
+    @PostMapping("/{transactionId}/comments")
+    public ResponseEntity<TransactionCommentResponse> addComment(@CurrentUserId Long userId,
+            @PathVariable Long transactionId, @Valid @RequestBody TransactionCommentRequest request) {
+        TransactionCommentResponse response = transactionService.addComment(userId, transactionId, request.body());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @DeleteMapping("/{transactionId}/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(@CurrentUserId Long userId, @PathVariable Long transactionId,
+            @PathVariable Long commentId) {
+        transactionService.deleteComment(userId, transactionId, commentId);
         return ResponseEntity.noContent().build();
     }
 }

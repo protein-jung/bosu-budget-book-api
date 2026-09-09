@@ -13,6 +13,7 @@ import com.bosu.housebook.household.HouseholdRepository;
 import com.bosu.housebook.household.HouseholdService;
 import com.bosu.housebook.notification.NotificationService;
 import com.bosu.housebook.notification.NotificationType;
+import com.bosu.housebook.transaction.dto.TransactionCommentResponse;
 import com.bosu.housebook.transaction.dto.TransactionRequest;
 import com.bosu.housebook.transaction.dto.TransactionResponse;
 import com.bosu.housebook.user.User;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final TransactionCommentRepository transactionCommentRepository;
     private final HouseholdRepository householdRepository;
     private final HouseholdService householdService;
     private final HouseholdMemberRepository householdMemberRepository;
@@ -36,11 +38,13 @@ public class TransactionService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
 
-    public TransactionService(TransactionRepository transactionRepository, HouseholdRepository householdRepository,
+    public TransactionService(TransactionRepository transactionRepository,
+            TransactionCommentRepository transactionCommentRepository, HouseholdRepository householdRepository,
             HouseholdService householdService, HouseholdMemberRepository householdMemberRepository,
             CategoryRepository categoryRepository, CardRepository cardRepository, UserRepository userRepository,
             NotificationService notificationService) {
         this.transactionRepository = transactionRepository;
+        this.transactionCommentRepository = transactionCommentRepository;
         this.householdRepository = householdRepository;
         this.householdService = householdService;
         this.householdMemberRepository = householdMemberRepository;
@@ -120,6 +124,42 @@ public class TransactionService {
         Transaction transaction = transactionRepository.findByIdAndHouseholdId(transactionId, householdId)
                 .orElseThrow(() -> ApiException.notFound("거래 내역을 찾을 수 없습니다."));
         transactionRepository.delete(transaction);
+    }
+
+    public List<TransactionCommentResponse> getComments(Long userId, Long transactionId) {
+        Transaction transaction = getOwnedTransaction(userId, transactionId);
+        return transactionCommentRepository.findByTransactionIdOrderByCreatedAtAsc(transaction.getId()).stream()
+                .map(TransactionCommentResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public TransactionCommentResponse addComment(Long userId, Long transactionId, String body) {
+        Transaction transaction = getOwnedTransaction(userId, transactionId);
+        User user = userRepository.getReferenceById(userId);
+        TransactionComment saved = transactionCommentRepository
+                .save(new TransactionComment(transaction, user, body.trim()));
+        return TransactionCommentResponse.from(saved);
+    }
+
+    @Transactional
+    public void deleteComment(Long userId, Long transactionId, Long commentId) {
+        getOwnedTransaction(userId, transactionId);
+        TransactionComment comment = transactionCommentRepository.findById(commentId)
+                .orElseThrow(() -> ApiException.notFound("댓글을 찾을 수 없습니다."));
+        if (!comment.getTransaction().getId().equals(transactionId)) {
+            throw ApiException.notFound("댓글을 찾을 수 없습니다.");
+        }
+        if (comment.getUser() == null || !comment.getUser().getId().equals(userId)) {
+            throw ApiException.forbidden("본인이 남긴 댓글만 지울 수 있습니다.");
+        }
+        transactionCommentRepository.delete(comment);
+    }
+
+    private Transaction getOwnedTransaction(Long userId, Long transactionId) {
+        Long householdId = householdService.getHouseholdIdForUser(userId);
+        return transactionRepository.findByIdAndHouseholdId(transactionId, householdId)
+                .orElseThrow(() -> ApiException.notFound("거래 내역을 찾을 수 없습니다."));
     }
 
     private Category getOwnedCategory(Long householdId, Long categoryId) {
