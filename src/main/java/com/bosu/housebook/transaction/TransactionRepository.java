@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,6 +31,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     /** 관리자 화면의 회원 상세에서 보여줄 최근 거래. */
     List<Transaction> findTop50ByUserIdOrderByTransactionDateDescIdDesc(Long userId);
+
+    /** 헤더 검색창에서 제목(memo)/메모(note)/카테고리명으로 내역을 찾을 때 쓴다. 월별 조회와
+     * 달리 기간 제한이 없어 pageable로 결과 개수를 제한한다. */
+    @Query("""
+            SELECT t FROM Transaction t
+            WHERE t.household.id = :householdId
+              AND (LOWER(t.memo) LIKE LOWER(CONCAT('%', :query, '%'))
+                   OR LOWER(t.note) LIKE LOWER(CONCAT('%', :query, '%'))
+                   OR LOWER(t.category.name) LIKE LOWER(CONCAT('%', :query, '%')))
+            ORDER BY t.transactionDate DESC, t.id DESC
+            """)
+    List<Transaction> searchByHouseholdId(@Param("householdId") Long householdId, @Param("query") String query,
+            Pageable pageable);
 
     /** 관리자 대시보드의 전체 수입/지출 합계. */
     interface TypeTotalProjection {

@@ -35,6 +35,11 @@ public class TransactionController {
         return transactionService.getMonthly(userId, year, month);
     }
 
+    @GetMapping("/search")
+    public List<TransactionResponse> search(@CurrentUserId Long userId, @RequestParam String q) {
+        return transactionService.search(userId, q);
+    }
+
     @PostMapping
     public ResponseEntity<TransactionResponse> create(@CurrentUserId Long userId,
             @Valid @RequestBody TransactionRequest request) {

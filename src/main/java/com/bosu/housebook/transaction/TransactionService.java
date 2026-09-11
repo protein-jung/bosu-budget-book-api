@@ -21,6 +21,7 @@ import com.bosu.housebook.user.UserRepository;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,6 +69,21 @@ public class TransactionService {
         return transactionRepository
                 .findByHouseholdIdAndTransactionDateBetweenAndIsBackfillFalseOrderByTransactionDateAscIdAsc(
                         householdId, from, to)
+                .stream()
+                .map(TransactionResponse::from)
+                .toList();
+    }
+
+    private static final int SEARCH_RESULT_LIMIT = 50;
+
+    public List<TransactionResponse> search(Long userId, String query) {
+        String trimmed = query == null ? "" : query.trim();
+        if (trimmed.isEmpty()) {
+            return List.of();
+        }
+        Long householdId = householdService.getHouseholdIdForUser(userId);
+        return transactionRepository
+                .searchByHouseholdId(householdId, trimmed, PageRequest.of(0, SEARCH_RESULT_LIMIT))
                 .stream()
                 .map(TransactionResponse::from)
                 .toList();
