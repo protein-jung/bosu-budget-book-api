@@ -6,7 +6,9 @@ import com.bosu.housebook.transaction.dto.TransactionCommentResponse;
 import com.bosu.housebook.transaction.dto.TransactionRequest;
 import com.bosu.housebook.transaction.dto.TransactionResponse;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -36,8 +38,10 @@ public class TransactionController {
     }
 
     @GetMapping("/search")
-    public List<TransactionResponse> search(@CurrentUserId Long userId, @RequestParam String q) {
-        return transactionService.search(userId, q);
+    public List<TransactionResponse> search(@CurrentUserId Long userId,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return transactionService.search(userId, q, date);
     }
 
     @PostMapping

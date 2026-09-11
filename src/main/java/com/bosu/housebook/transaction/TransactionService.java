@@ -76,14 +76,15 @@ public class TransactionService {
 
     private static final int SEARCH_RESULT_LIMIT = 50;
 
-    public List<TransactionResponse> search(Long userId, String query) {
+    public List<TransactionResponse> search(Long userId, String query, LocalDate date) {
         String trimmed = query == null ? "" : query.trim();
-        if (trimmed.isEmpty()) {
+        if (trimmed.isEmpty() && date == null) {
             return List.of();
         }
         Long householdId = householdService.getHouseholdIdForUser(userId);
+        String queryParam = trimmed.isEmpty() ? null : trimmed;
         return transactionRepository
-                .searchByHouseholdId(householdId, trimmed, PageRequest.of(0, SEARCH_RESULT_LIMIT))
+                .searchByHouseholdId(householdId, queryParam, date, PageRequest.of(0, SEARCH_RESULT_LIMIT))
                 .stream()
                 .map(TransactionResponse::from)
                 .toList();
