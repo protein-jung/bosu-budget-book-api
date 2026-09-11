@@ -139,7 +139,24 @@ public class TransactionService {
         User user = userRepository.getReferenceById(userId);
         TransactionComment saved = transactionCommentRepository
                 .save(new TransactionComment(transaction, user, body.trim()));
+        notifyOtherMembersOfComment(transaction, userId, user, saved);
         return TransactionCommentResponse.from(saved);
+    }
+
+    /** 거래 상세에 댓글이 달리면, 작성자 본인을 제외한 나머지 구성원에게 헤더 알림으로 알려준다. */
+    private void notifyOtherMembersOfComment(Transaction transaction, Long authorUserId, User author,
+            TransactionComment comment) {
+        Long householdId = transaction.getHousehold().getId();
+        String typeLabel = transaction.getType() == TransactionType.INCOME ? "수입" : "지출";
+        String title = "%s님이 %s 내역에 댓글을 남겼어요".formatted(author.getName(), typeLabel);
+
+        List<HouseholdMember> members = householdMemberRepository.findByHouseholdId(householdId);
+        for (HouseholdMember member : members) {
+            if (!member.getUser().getId().equals(authorUserId)) {
+                notificationService.create(member.getUser(), NotificationType.TRANSACTION_COMMENT_ADDED, title,
+                        comment.getBody(), "/calendar");
+            }
+        }
     }
 
     @Transactional
