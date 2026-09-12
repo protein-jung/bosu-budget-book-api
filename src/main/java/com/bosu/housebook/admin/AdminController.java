@@ -80,4 +80,10 @@ public class AdminController {
         adminService.deleteUser(userId);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/households/{householdId}")
+    public ResponseEntity<Void> deleteHousehold(@PathVariable Long householdId) {
+        adminService.deleteHousehold(householdId);
+        return ResponseEntity.noContent().build();
+    }
 }

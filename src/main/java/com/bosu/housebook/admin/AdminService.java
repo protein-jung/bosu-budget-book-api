@@ -204,6 +204,13 @@ public class AdminService {
         userRepository.delete(user);
     }
 
+    @Transactional
+    public void deleteHousehold(Long householdId) {
+        Household household = householdRepository.findById(householdId)
+                .orElseThrow(() -> ApiException.notFound("가계부를 찾을 수 없습니다."));
+        householdRepository.delete(household);
+    }
+
     private AdminUserResponse toAdminUserResponse(User user) {
         var membership = householdMemberRepository.findByUserId(user.getId()).orElse(null);
         Household household = membership != null ? membership.getHousehold() : null;
