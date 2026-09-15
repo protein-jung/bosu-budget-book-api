@@ -9,6 +9,7 @@ import com.bosu.housebook.asset.RealEstateCategory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record AssetResponse(
         Long id,
@@ -37,6 +38,8 @@ public record AssetResponse(
         boolean matured,
         BigDecimal cashInterestRate,
         LocalDate cashStartDate,
+        BigDecimal cashMonthlyContribution,
+        List<CashContributionResponse> cashContributions,
         LocalDate purchaseDate,
         String encarUrl,
         BigDecimal loanPrincipal,
@@ -78,6 +81,8 @@ public record AssetResponse(
                 asset.isMatured(),
                 asset.getCashInterestRate(),
                 asset.getCashStartDate(),
+                asset.getCashMonthlyContribution(),
+                asset.getCashContributions().stream().map(CashContributionResponse::from).toList(),
                 asset.getPurchaseDate(),
                 asset.getEncarUrl(),
                 asset.getLoanPrincipal(),

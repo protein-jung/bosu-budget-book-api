@@ -19,6 +19,8 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -125,6 +127,13 @@ public class Asset extends BaseTimeEntity {
     @Column(name = "cash_start_date")
     private LocalDate cashStartDate;
 
+    /** CASH 전용(선택, 적금만): 월 납입액. 있으면 예치금(manualValue)에 매달 시작일 기준으로
+     * 이 금액을 더해 현재가치를 계산한다 — 예금처럼 이자로 불리는 모델과 달리, 적금은 매달
+     * 정해진 금액을 넣는 것 자체가 핵심이라 이자율(cashInterestRate)과는 별도로 취급하고
+     * 이 필드가 있으면 이자 추정은 적용하지 않는다. */
+    @Column(name = "cash_monthly_contribution", precision = 16, scale = 2)
+    private BigDecimal cashMonthlyContribution;
+
     /** 차량 전용(선택): 구매일. 표시용으로만 쓰인다 — 현재가는 encarUrl 기반 시세 조회로 구한다. */
     @Column(name = "purchase_date")
     private LocalDate purchaseDate;
@@ -168,7 +177,8 @@ public class Asset extends BaseTimeEntity {
             BigDecimal quantity, BigDecimal averagePrice, BigDecimal manualValue, String memo, String address,
             String dong, String ho, String lawdCd, String complexName, String regionDongName,
             AccountCategory accountCategory, User owner, CashCategory cashCategory, LocalDate maturityDate,
-            BigDecimal cashInterestRate, LocalDate cashStartDate, LocalDate purchaseDate, String encarUrl,
+            BigDecimal cashInterestRate, LocalDate cashStartDate, BigDecimal cashMonthlyContribution,
+            LocalDate purchaseDate, String encarUrl,
             BigDecimal loanPrincipal, LocalDate loanStartMonth, Integer loanTermMonths,
             BigDecimal loanMonthlyPayment, BigDecimal loanInterestRate, LoanRepaymentType loanRepaymentType,
             RealEstateCategory realEstateCategory, BigDecimal monthlyRent, boolean includeInStats) {
@@ -193,6 +203,7 @@ public class Asset extends BaseTimeEntity {
         this.maturityDate = type == AssetType.CASH ? maturityDate : null;
         this.cashInterestRate = type == AssetType.CASH ? cashInterestRate : null;
         this.cashStartDate = type == AssetType.CASH ? cashStartDate : null;
+        this.cashMonthlyContribution = type == AssetType.CASH ? cashMonthlyContribution : null;
         this.purchaseDate = type == AssetType.VEHICLE ? purchaseDate : null;
         this.encarUrl = type == AssetType.VEHICLE ? encarUrl : null;
         this.realEstateCategory = type == AssetType.REAL_ESTATE
@@ -217,10 +228,10 @@ public class Asset extends BaseTimeEntity {
             BigDecimal averagePrice, BigDecimal manualValue, String memo, String address, String dong, String ho,
             String lawdCd, String complexName, String regionDongName, AccountCategory accountCategory,
             CashCategory cashCategory, LocalDate maturityDate, BigDecimal cashInterestRate, LocalDate cashStartDate,
-            LocalDate purchaseDate, String encarUrl, BigDecimal loanPrincipal, LocalDate loanStartMonth,
-            Integer loanTermMonths, BigDecimal loanMonthlyPayment, BigDecimal loanInterestRate,
-            LoanRepaymentType loanRepaymentType, RealEstateCategory realEstateCategory, BigDecimal monthlyRent,
-            boolean includeInStats) {
+            BigDecimal cashMonthlyContribution, LocalDate purchaseDate, String encarUrl, BigDecimal loanPrincipal,
+            LocalDate loanStartMonth, Integer loanTermMonths, BigDecimal loanMonthlyPayment,
+            BigDecimal loanInterestRate, LoanRepaymentType loanRepaymentType, RealEstateCategory realEstateCategory,
+            BigDecimal monthlyRent, boolean includeInStats) {
         this.type = type;
         this.name = name;
         this.custodian = custodian;
@@ -240,6 +251,7 @@ public class Asset extends BaseTimeEntity {
         this.maturityDate = type == AssetType.CASH ? maturityDate : null;
         this.cashInterestRate = type == AssetType.CASH ? cashInterestRate : null;
         this.cashStartDate = type == AssetType.CASH ? cashStartDate : null;
+        this.cashMonthlyContribution = type == AssetType.CASH ? cashMonthlyContribution : null;
         this.purchaseDate = type == AssetType.VEHICLE ? purchaseDate : null;
         this.encarUrl = type == AssetType.VEHICLE ? encarUrl : null;
         this.realEstateCategory = type == AssetType.REAL_ESTATE
@@ -291,6 +303,9 @@ public class Asset extends BaseTimeEntity {
             return currentPrice != null && quantity != null ? currentPrice.multiply(quantity) : null;
         }
         if (type == AssetType.CASH) {
+            if (cashMonthlyContribution != null && cashMonthlyContribution.signum() > 0 && manualValue != null) {
+                return manualValue.add(cashMonthlyContribution.multiply(BigDecimal.valueOf(elapsedCashMonths())));
+            }
             BigDecimal accrued = estimateCashAccruedValue();
             return accrued != null ? accrued : manualValue;
         }
@@ -314,6 +329,43 @@ public class Asset extends BaseTimeEntity {
         }
         double interest = manualValue.doubleValue() * (cashInterestRate.doubleValue() / 100.0) * elapsedDays / 365.0;
         return manualValue.add(BigDecimal.valueOf(interest)).setScale(0, RoundingMode.HALF_UP);
+    }
+
+    /** 적금 전용: 예치 시작일 기준 오늘까지 지난 "납입 회차"(개월 수). 만기일이 있으면 그 이후로는
+     * 더 늘리지 않는다. 시작일이 없으면 0. */
+    private long elapsedCashMonths() {
+        if (cashStartDate == null) {
+            return 0;
+        }
+        LocalDate today = LocalDate.now();
+        if (!today.isAfter(cashStartDate)) {
+            return 0;
+        }
+        long elapsed = ChronoUnit.MONTHS.between(cashStartDate, today);
+        if (maturityDate != null) {
+            long totalMonths = Math.max(ChronoUnit.MONTHS.between(cashStartDate, maturityDate), 0);
+            elapsed = Math.min(elapsed, totalMonths);
+        }
+        return elapsed;
+    }
+
+    /** 적금 전용: 예치금(초기) + 매달 시작일 기준으로 늘어난 납입 내역을 날짜순으로 돌려준다.
+     * 월납입액을 안 썼으면 빈 리스트. */
+    public List<CashContribution> getCashContributions() {
+        if (type != AssetType.CASH || cashMonthlyContribution == null || cashMonthlyContribution.signum() <= 0
+                || cashStartDate == null || manualValue == null) {
+            return List.of();
+        }
+        List<CashContribution> contributions = new ArrayList<>();
+        contributions.add(new CashContribution(cashStartDate, manualValue, true));
+        long elapsed = elapsedCashMonths();
+        for (long i = 1; i <= elapsed; i++) {
+            contributions.add(new CashContribution(cashStartDate.plusMonths(i), cashMonthlyContribution, false));
+        }
+        return contributions;
+    }
+
+    public record CashContribution(LocalDate date, BigDecimal amount, boolean initial) {
     }
 
     /** 상환 방식에 따라 경과 개월 기준 잔액을 추정한다. 필수 입력값이 없으면 null. */

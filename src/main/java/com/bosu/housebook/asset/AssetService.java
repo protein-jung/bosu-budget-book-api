@@ -62,7 +62,8 @@ public class AssetService {
                 request.quantity(), averagePrice, request.manualValue(), request.memo(), request.address(),
                 request.dong(), request.ho(), request.lawdCd(), request.complexName(), request.regionDongName(),
                 request.accountCategory(), owner, request.cashCategory(), request.maturityDate(),
-                request.cashInterestRate(), request.cashStartDate(), request.purchaseDate(), request.encarUrl(),
+                request.cashInterestRate(), request.cashStartDate(), request.cashMonthlyContribution(),
+                request.purchaseDate(), request.encarUrl(),
                 request.loanPrincipal(), request.loanStartMonth(), request.loanTermMonths(),
                 request.loanMonthlyPayment(), request.loanInterestRate(), request.loanRepaymentType(),
                 request.realEstateCategory(), request.monthlyRent(), request.includeInStats());
@@ -79,7 +80,8 @@ public class AssetService {
                 averagePrice, request.manualValue(), request.memo(), request.address(), request.dong(),
                 request.ho(), request.lawdCd(), request.complexName(), request.regionDongName(),
                 request.accountCategory(), request.cashCategory(), request.maturityDate(),
-                request.cashInterestRate(), request.cashStartDate(), request.purchaseDate(), request.encarUrl(),
+                request.cashInterestRate(), request.cashStartDate(), request.cashMonthlyContribution(),
+                request.purchaseDate(), request.encarUrl(),
                 request.loanPrincipal(), request.loanStartMonth(), request.loanTermMonths(),
                 request.loanMonthlyPayment(), request.loanInterestRate(), request.loanRepaymentType(),
                 request.realEstateCategory(), request.monthlyRent(), request.includeInStats());
@@ -180,6 +182,9 @@ public class AssetService {
             }
         } else if (request.manualValue() == null || request.manualValue().signum() < 0) {
             throw ApiException.badRequest("평가금액을 입력해야 합니다.");
+        }
+        if (request.cashMonthlyContribution() != null && request.cashMonthlyContribution().signum() < 0) {
+            throw ApiException.badRequest("월 납입액을 올바르게 입력해주세요.");
         }
         if (request.type() == AssetType.REAL_ESTATE && request.realEstateCategory() == RealEstateCategory.WOLSE
                 && (request.monthlyRent() == null || request.monthlyRent().signum() < 0)) {
