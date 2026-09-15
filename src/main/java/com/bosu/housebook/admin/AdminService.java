@@ -5,12 +5,14 @@ import com.bosu.housebook.admin.dto.AdminHouseholdDetailResponse;
 import com.bosu.housebook.admin.dto.AdminHouseholdResponse;
 import com.bosu.housebook.admin.dto.AdminLoginRequest;
 import com.bosu.housebook.admin.dto.AdminMemberResponse;
+import com.bosu.housebook.admin.dto.AdminPageViewsResponse;
 import com.bosu.housebook.admin.dto.AdminStatsResponse;
 import com.bosu.housebook.admin.dto.AdminTransactionResponse;
 import com.bosu.housebook.admin.dto.AdminTrendPointResponse;
 import com.bosu.housebook.admin.dto.AdminTrendsResponse;
 import com.bosu.housebook.admin.dto.AdminUserDetailResponse;
 import com.bosu.housebook.admin.dto.AdminUserResponse;
+import com.bosu.housebook.analytics.PageViewService;
 import com.bosu.housebook.auth.JwtTokenProvider;
 import com.bosu.housebook.common.ApiException;
 import com.bosu.housebook.common.TransactionType;
@@ -50,11 +52,13 @@ public class AdminService {
     private final HouseholdMemberRepository householdMemberRepository;
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
+    private final PageViewService pageViewService;
 
     public AdminService(AdminProperties adminProperties, PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider, UserRepository userRepository,
             HouseholdRepository householdRepository, HouseholdMemberRepository householdMemberRepository,
-            TransactionRepository transactionRepository, TransactionService transactionService) {
+            TransactionRepository transactionRepository, TransactionService transactionService,
+            PageViewService pageViewService) {
         this.adminProperties = adminProperties;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -63,6 +67,7 @@ public class AdminService {
         this.householdMemberRepository = householdMemberRepository;
         this.transactionService = transactionService;
         this.transactionRepository = transactionRepository;
+        this.pageViewService = pageViewService;
     }
 
     public String login(AdminLoginRequest request) {
@@ -188,6 +193,10 @@ public class AdminService {
         }
 
         return new AdminTrendsResponse(userGrowth, dailyIncome, dailyExpense);
+    }
+
+    public AdminPageViewsResponse pageViews(int days) {
+        return pageViewService.adminStats(days);
     }
 
     @Transactional
