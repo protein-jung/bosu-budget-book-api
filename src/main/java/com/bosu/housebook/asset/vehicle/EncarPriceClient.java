@@ -54,7 +54,10 @@ public class EncarPriceClient {
                     .uri(uriBuilder -> uriBuilder.path("/search/car/list/general")
                             .queryParam("count", "true")
                             .queryParam("q", searchExpression)
-                            .queryParam("sr", "|MobileModifiedDate|0|20")
+                            // 매물이 20건보다 많은 조건이면 "최근 수정순 20건"만 평균 내던 값이 실제
+                            // 시세와 동떨어지는 문제가 있었다. 한 번의 요청으로 최대한 많은 매물을 모아
+                            // 평균을 내도록 200건까지 가져온다(엔카 API는 500건대부터 빈 응답을 준다).
+                            .queryParam("sr", "|MobileModifiedDate|0|200")
                             .build())
                     .retrieve()
                     .body(String.class);
@@ -69,6 +72,12 @@ public class EncarPriceClient {
             BigDecimal sumManwon = BigDecimal.ZERO;
             int count = 0;
             for (JsonNode item : results) {
+                // 리스/렌트 매물은 Price가 일반 매매가가 아니라 리스·렌트 관련 금액이라
+                // 그대로 섞으면 평균이 크게 튄다. 일반 매매 매물만 평균에 포함한다.
+                String sellType = item.path("SellType").asText("");
+                if ("리스".equals(sellType) || "렌트".equals(sellType)) {
+                    continue;
+                }
                 JsonNode priceNode = item.path("Price");
                 if (priceNode.isMissingNode() || priceNode.isNull()) {
                     continue;
