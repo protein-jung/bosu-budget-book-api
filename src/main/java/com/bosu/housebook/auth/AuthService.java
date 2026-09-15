@@ -23,13 +23,16 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AdminProperties adminProperties;
+    private final SlackSignupNotifier slackSignupNotifier;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-            JwtTokenProvider jwtTokenProvider, AdminProperties adminProperties) {
+            JwtTokenProvider jwtTokenProvider, AdminProperties adminProperties,
+            SlackSignupNotifier slackSignupNotifier) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.adminProperties = adminProperties;
+        this.slackSignupNotifier = slackSignupNotifier;
     }
 
     @Transactional
@@ -43,6 +46,7 @@ public class AuthService {
         User user = new User(request.email(), passwordEncoder.encode(request.password()), request.name(),
                 request.birthDate());
         userRepository.save(user);
+        slackSignupNotifier.notify(user);
         return toTokenResponse(user);
     }
 

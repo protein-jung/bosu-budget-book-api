@@ -51,6 +51,7 @@ app:
   slack:
     # 비어있으면 알림을 보내지 않는다. 실제 웹훅 URL은 로컬 환경변수/deploy/.env에서만 채운다.
     error-webhook-url: ${SLACK_ERROR_WEBHOOK_URL:}
+    signup-webhook-url: ${SLACK_SIGNUP_WEBHOOK_URL:}
 
 admin:
   username: ${ADMIN_USERNAME:admin}
