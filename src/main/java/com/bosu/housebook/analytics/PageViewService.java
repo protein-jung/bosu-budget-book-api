@@ -1,5 +1,6 @@
 package com.bosu.housebook.analytics;
 
+import com.bosu.housebook.admin.dto.AdminCampaignStatResponse;
 import com.bosu.housebook.admin.dto.AdminPageViewStatResponse;
 import com.bosu.housebook.admin.dto.AdminPageViewsResponse;
 import com.bosu.housebook.admin.dto.AdminTrendPointResponse;
@@ -31,7 +32,8 @@ public class PageViewService {
     @Transactional
     public void record(PageViewRequest request, Long userId) {
         User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
-        pageViewRepository.save(new PageView(request.path(), request.visitorId(), user));
+        pageViewRepository.save(new PageView(request.path(), request.visitorId(), user, request.utmSource(),
+                request.utmMedium(), request.utmCampaign()));
     }
 
     /** 어드민 "접속 통계" 화면. 최근 days일 동안의 페이지별 조회수·순 방문자와 일별 조회수 추이. */
@@ -42,6 +44,11 @@ public class PageViewService {
 
         List<AdminPageViewStatResponse> byPath = pageViewRepository.findPathStatsSince(from).stream()
                 .map(p -> new AdminPageViewStatResponse(p.getPath(), p.getViews(), p.getUniqueVisitors()))
+                .toList();
+
+        List<AdminCampaignStatResponse> byCampaign = pageViewRepository.findCampaignStatsSince(from).stream()
+                .map(c -> new AdminCampaignStatResponse(c.getUtmSource(), c.getUtmMedium(), c.getUtmCampaign(),
+                        c.getViews(), c.getUniqueVisitors()))
                 .toList();
 
         Map<LocalDate, Long> dailyTotals = new HashMap<>();
@@ -56,6 +63,6 @@ public class PageViewService {
         long totalViews = pageViewRepository.countByCreatedAtGreaterThanEqual(from);
         long totalUniqueVisitors = pageViewRepository.countDistinctVisitorsSince(from);
 
-        return new AdminPageViewsResponse(totalViews, totalUniqueVisitors, byPath, daily);
+        return new AdminPageViewsResponse(totalViews, totalUniqueVisitors, byPath, byCampaign, daily);
     }
 }

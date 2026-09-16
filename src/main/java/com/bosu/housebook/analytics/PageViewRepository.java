@@ -43,4 +43,24 @@ public interface PageViewRepository extends JpaRepository<PageView, Long> {
 
     @Query("SELECT COUNT(DISTINCT p.visitorId) FROM PageView p WHERE p.createdAt >= :from")
     long countDistinctVisitorsSince(@Param("from") LocalDateTime from);
+
+    /** 어드민 접속 통계 화면의 UTM 유입 채널별 조회수·순 방문자 표. utm_source가 없는(직접
+     * 방문·일반 사용) 행은 캠페인 유입이 아니므로 제외한다. */
+    interface CampaignStatProjection {
+        String getUtmSource();
+        String getUtmMedium();
+        String getUtmCampaign();
+        Long getViews();
+        Long getUniqueVisitors();
+    }
+
+    @Query("""
+            SELECT p.utmSource AS utmSource, p.utmMedium AS utmMedium, p.utmCampaign AS utmCampaign,
+                   COUNT(p) AS views, COUNT(DISTINCT p.visitorId) AS uniqueVisitors
+            FROM PageView p
+            WHERE p.createdAt >= :from AND p.utmSource IS NOT NULL
+            GROUP BY p.utmSource, p.utmMedium, p.utmCampaign
+            ORDER BY COUNT(p) DESC
+            """)
+    List<CampaignStatProjection> findCampaignStatsSince(@Param("from") LocalDateTime from);
 }

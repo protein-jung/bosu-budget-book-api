@@ -38,9 +38,23 @@ public class PageView extends BaseTimeEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
-    public PageView(String path, String visitorId, User user) {
+    /** 마케팅 유입 추적용 UTM 파라미터. 직접 방문/일반 사용에는 값이 없다. */
+    @Column(name = "utm_source", length = 100)
+    private String utmSource;
+
+    @Column(name = "utm_medium", length = 100)
+    private String utmMedium;
+
+    @Column(name = "utm_campaign", length = 100)
+    private String utmCampaign;
+
+    public PageView(String path, String visitorId, User user, String utmSource, String utmMedium,
+            String utmCampaign) {
         this.path = path;
         this.visitorId = visitorId;
         this.user = user;
+        this.utmSource = utmSource;
+        this.utmMedium = utmMedium;
+        this.utmCampaign = utmCampaign;
     }
 }
