@@ -2,6 +2,9 @@ package com.bosu.housebook.notification;
 
 import com.bosu.housebook.common.ApiException;
 import com.bosu.housebook.notification.dto.NotificationResponse;
+import com.bosu.housebook.push.ExpoPushSender;
+import com.bosu.housebook.push.PushToken;
+import com.bosu.housebook.push.PushTokenRepository;
 import com.bosu.housebook.user.User;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -12,9 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final PushTokenRepository pushTokenRepository;
+    private final ExpoPushSender expoPushSender;
 
-    public NotificationService(NotificationRepository notificationRepository) {
+    public NotificationService(NotificationRepository notificationRepository,
+            PushTokenRepository pushTokenRepository, ExpoPushSender expoPushSender) {
         this.notificationRepository = notificationRepository;
+        this.pushTokenRepository = pushTokenRepository;
+        this.expoPushSender = expoPushSender;
     }
 
     public List<NotificationResponse> getForUser(Long userId) {
@@ -45,5 +53,9 @@ public class NotificationService {
     @Transactional
     public void create(User recipient, NotificationType type, String title, String body, String link) {
         notificationRepository.save(new Notification(recipient, type, title, body, link));
+        List<String> tokens = pushTokenRepository.findByUserId(recipient.getId()).stream()
+                .map(PushToken::getToken)
+                .toList();
+        expoPushSender.send(tokens, title, body, link);
     }
 }
