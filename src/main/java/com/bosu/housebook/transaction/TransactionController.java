@@ -40,8 +40,9 @@ public class TransactionController {
     @GetMapping("/search")
     public List<TransactionResponse> search(@CurrentUserId Long userId,
             @RequestParam(required = false) String q,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return transactionService.search(userId, q, date);
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return transactionService.search(userId, q, from, to);
     }
 
     @PostMapping

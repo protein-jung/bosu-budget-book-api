@@ -32,9 +32,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     /** 관리자 화면의 회원 상세에서 보여줄 최근 거래. */
     List<Transaction> findTop50ByUserIdOrderByTransactionDateDescIdDesc(Long userId);
 
-    /** 헤더 검색창에서 제목(memo)/메모(note)/카테고리명, 그리고 특정 날짜로 내역을 찾을 때 쓴다.
-     * query·date 둘 다 선택값이라 null이면(각각) 그 조건은 걸지 않는다. 월별 조회와 달리 기간
-     * 제한이 없어 pageable로 결과 개수를 제한한다. */
+    /** 헤더 검색창에서 제목(memo)/메모(note)/카테고리명, 그리고 날짜 범위(from~to)로 내역을 찾을
+     * 때 쓴다. query·from·to 모두 선택값이라 null이면(각각) 그 조건은 걸지 않는다. 월별 조회와
+     * 달리 기간 제한이 없어 pageable로 결과 개수를 제한한다. */
     @Query("""
             SELECT t FROM Transaction t
             WHERE t.household.id = :householdId
@@ -42,11 +42,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                    OR LOWER(t.memo) LIKE LOWER(CONCAT('%', :query, '%'))
                    OR LOWER(t.note) LIKE LOWER(CONCAT('%', :query, '%'))
                    OR LOWER(t.category.name) LIKE LOWER(CONCAT('%', :query, '%')))
-              AND (:date IS NULL OR t.transactionDate = :date)
+              AND (:from IS NULL OR t.transactionDate >= :from)
+              AND (:to IS NULL OR t.transactionDate <= :to)
             ORDER BY t.transactionDate DESC, t.id DESC
             """)
     List<Transaction> searchByHouseholdId(@Param("householdId") Long householdId, @Param("query") String query,
-            @Param("date") LocalDate date, Pageable pageable);
+            @Param("from") LocalDate from, @Param("to") LocalDate to, Pageable pageable);
 
     /** 관리자 대시보드의 전체 수입/지출 합계. */
     interface TypeTotalProjection {

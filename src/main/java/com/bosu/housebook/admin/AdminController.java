@@ -3,6 +3,7 @@ package com.bosu.housebook.admin;
 import com.bosu.housebook.admin.dto.AdminHouseholdDetailResponse;
 import com.bosu.housebook.admin.dto.AdminHouseholdResponse;
 import com.bosu.housebook.admin.dto.AdminPageViewsResponse;
+import com.bosu.housebook.admin.dto.AdminSearchStatsResponse;
 import com.bosu.housebook.admin.dto.AdminStatsResponse;
 import com.bosu.housebook.admin.dto.AdminTrendsResponse;
 import com.bosu.housebook.admin.dto.AdminUserDetailResponse;
@@ -41,6 +42,11 @@ public class AdminController {
     @GetMapping("/page-views")
     public AdminPageViewsResponse pageViews(@RequestParam(defaultValue = "30") int days) {
         return adminService.pageViews(days);
+    }
+
+    @GetMapping("/search-terms")
+    public AdminSearchStatsResponse searchTerms(@RequestParam(defaultValue = "30") int days) {
+        return adminService.searchTerms(days);
     }
 
     @GetMapping("/users")

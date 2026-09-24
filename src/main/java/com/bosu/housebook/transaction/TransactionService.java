@@ -11,6 +11,7 @@ import com.bosu.housebook.household.HouseholdMember;
 import com.bosu.housebook.household.HouseholdMemberRepository;
 import com.bosu.housebook.household.HouseholdRepository;
 import com.bosu.housebook.household.HouseholdService;
+import com.bosu.housebook.analytics.SearchLogService;
 import com.bosu.housebook.notification.NotificationService;
 import com.bosu.housebook.notification.NotificationType;
 import com.bosu.housebook.transaction.dto.TransactionCommentResponse;
@@ -38,12 +39,13 @@ public class TransactionService {
     private final CardRepository cardRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final SearchLogService searchLogService;
 
     public TransactionService(TransactionRepository transactionRepository,
             TransactionCommentRepository transactionCommentRepository, HouseholdRepository householdRepository,
             HouseholdService householdService, HouseholdMemberRepository householdMemberRepository,
             CategoryRepository categoryRepository, CardRepository cardRepository, UserRepository userRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService, SearchLogService searchLogService) {
         this.transactionRepository = transactionRepository;
         this.transactionCommentRepository = transactionCommentRepository;
         this.householdRepository = householdRepository;
@@ -53,6 +55,7 @@ public class TransactionService {
         this.cardRepository = cardRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.searchLogService = searchLogService;
     }
 
     public List<TransactionResponse> getMonthly(Long userId, int year, int month) {
@@ -76,15 +79,19 @@ public class TransactionService {
 
     private static final int SEARCH_RESULT_LIMIT = 50;
 
-    public List<TransactionResponse> search(Long userId, String query, LocalDate date) {
+    @Transactional
+    public List<TransactionResponse> search(Long userId, String query, LocalDate from, LocalDate to) {
         String trimmed = query == null ? "" : query.trim();
-        if (trimmed.isEmpty() && date == null) {
+        if (trimmed.isEmpty() && from == null && to == null) {
             return List.of();
         }
         Long householdId = householdService.getHouseholdIdForUser(userId);
         String queryParam = trimmed.isEmpty() ? null : trimmed;
+        if (queryParam != null) {
+            searchLogService.record(queryParam, userId);
+        }
         return transactionRepository
-                .searchByHouseholdId(householdId, queryParam, date, PageRequest.of(0, SEARCH_RESULT_LIMIT))
+                .searchByHouseholdId(householdId, queryParam, from, to, PageRequest.of(0, SEARCH_RESULT_LIMIT))
                 .stream()
                 .map(TransactionResponse::from)
                 .toList();

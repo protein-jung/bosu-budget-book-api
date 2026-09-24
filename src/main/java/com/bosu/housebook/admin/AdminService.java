@@ -6,6 +6,7 @@ import com.bosu.housebook.admin.dto.AdminHouseholdResponse;
 import com.bosu.housebook.admin.dto.AdminLoginRequest;
 import com.bosu.housebook.admin.dto.AdminMemberResponse;
 import com.bosu.housebook.admin.dto.AdminPageViewsResponse;
+import com.bosu.housebook.admin.dto.AdminSearchStatsResponse;
 import com.bosu.housebook.admin.dto.AdminStatsResponse;
 import com.bosu.housebook.admin.dto.AdminTransactionResponse;
 import com.bosu.housebook.admin.dto.AdminTrendPointResponse;
@@ -13,6 +14,7 @@ import com.bosu.housebook.admin.dto.AdminTrendsResponse;
 import com.bosu.housebook.admin.dto.AdminUserDetailResponse;
 import com.bosu.housebook.admin.dto.AdminUserResponse;
 import com.bosu.housebook.analytics.PageViewService;
+import com.bosu.housebook.analytics.SearchLogService;
 import com.bosu.housebook.auth.JwtTokenProvider;
 import com.bosu.housebook.common.ApiException;
 import com.bosu.housebook.common.TransactionType;
@@ -53,12 +55,13 @@ public class AdminService {
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
     private final PageViewService pageViewService;
+    private final SearchLogService searchLogService;
 
     public AdminService(AdminProperties adminProperties, PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider, UserRepository userRepository,
             HouseholdRepository householdRepository, HouseholdMemberRepository householdMemberRepository,
             TransactionRepository transactionRepository, TransactionService transactionService,
-            PageViewService pageViewService) {
+            PageViewService pageViewService, SearchLogService searchLogService) {
         this.adminProperties = adminProperties;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
@@ -68,6 +71,7 @@ public class AdminService {
         this.transactionService = transactionService;
         this.transactionRepository = transactionRepository;
         this.pageViewService = pageViewService;
+        this.searchLogService = searchLogService;
     }
 
     public String login(AdminLoginRequest request) {
@@ -197,6 +201,10 @@ public class AdminService {
 
     public AdminPageViewsResponse pageViews(int days) {
         return pageViewService.adminStats(days);
+    }
+
+    public AdminSearchStatsResponse searchTerms(int days) {
+        return searchLogService.adminStats(days);
     }
 
     @Transactional
